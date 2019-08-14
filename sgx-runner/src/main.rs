@@ -7,7 +7,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate sharedring;
-extern crate mylib;
+// extern crate mylib;
 extern crate tokio;
 #[macro_use]
 extern crate clap;
@@ -15,8 +15,8 @@ extern crate clap;
 #[link(name="mapping", kind="static")]
 extern { fn mapping(); }
 
-use mylib::haproxy::{run_client, run_server, parse_args};
-use mylib::config::{load_config, NUM_RXD, NUM_TXD, NetBricksConfiguration, get_duration};
+// use mylib::haproxy::{run_client, run_server, parse_args};
+// use mylib::config::{load_config, NUM_RXD, NUM_TXD, NetBricksConfiguration, get_duration};
 use sharedring::ring_buffer::*;
 
 use std::time::{Duration, Instant};

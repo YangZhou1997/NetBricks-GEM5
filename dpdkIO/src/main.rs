@@ -206,7 +206,8 @@ fn main() -> PktResult<()> {
     println!("core_affinity detect: # available cores: {}", core_ids.len());
     assert!(core_ids.len() >= ports.len() + 1, "# available cores is not enough"); 
     // one core for pktpuller, one core for normal linux monitoring.
-    core_affinity::set_for_current(core_ids[0].clone());
+    // core_affinity::set_for_current(core_ids[0].clone());
+    core_affinity::set_for_current(core_ids[1].clone()); // run dpdk thread on core 1;
 
     let mut server_count: u64 = 0;
     let mut client_count: u64 = 0;

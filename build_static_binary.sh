@@ -24,6 +24,22 @@ DPDK_CONFIG_FILE=${DPDK_CONFIG_FILE-"${DPDK_HOME}/config/common_linuxapp"}
 NATIVE_LIB_PATH="${BASE_DIR}/native"
 export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
+native () {
+    make -j $proc -C $BASE_DIR/native
+    make -C $BASE_DIR/native install
+}
+
+native
+
+# Build custom runner
+pushd dpdkIO
+if [ "$MODE" == "debug" ]; then
+    cargo +nightly build
+else
+    cargo +nightly build --release
+fi
+popd
+
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec acl-fw-ipsec-sha dpi-ipsec-sha lpm-ipsec-sha macswap-ipsec-sha maglev-ipsec-sha monitoring-ipsec-sha nat-tcp-v4-ipsec-sha
 for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4
 do 

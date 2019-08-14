@@ -8,6 +8,7 @@ repository = "https://github.com/williamofockham/NetBricks"
 readme = "README.md"
 keywords = ["netbricks", "network-functions", "nfs", "packet-processing"]
 categories = ["network-functions", "framework"]
+build = "build.rs"
 
 [lib]
 doctest = false
@@ -29,6 +30,9 @@ twox-hash = ">= 1.2"
 # enclave can only use mbedtls for crypto.
 # mbedtls = {version="0.3.0", default-features = false, features = ["sgx"]}
 # mbedtls = {version="0.3.0", path="../mbedtls-0.3.0/", default-features = false, features = ["sgx"]}
+
+[build-dependencies]
+cc = "1.0"
 
 [features]
 default = []

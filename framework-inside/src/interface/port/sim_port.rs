@@ -21,6 +21,9 @@ use std::slice;
 
 use heap_ring::ring_buffer::*;
 
+#[link(name="mapping", kind="static")]
+extern { fn mapping(); }
+
 pub struct SimulatePort {
     stats_rx: Arc<CacheAligned<PortStats>>,
     stats_tx: Arc<CacheAligned<PortStats>>,
@@ -73,17 +76,9 @@ impl PacketRx for SimulateQueue {
     fn recv(&self, pkts: &mut [*mut MBuf]) -> Result<u32> {
         // pull packet from recvq;
         let recv_pkt_num_from_enclave = self.recvq_ring.read_from_head(pkts);
-        // if recv_pkt_num_from_enclave != 0{
-            // println!("{}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head());
-        // }
-
-        // let status = mbuf_alloc_bulk(pkts.as_mut_ptr(), MAX_MBUF_SIZE, len);
-        // println!("recv1 {}", status); stdout().flush().unwrap();
-        // let alloced = if status == 0 { len } else { 0 };
         let alloced = recv_pkt_num_from_enclave;
         let update = self.stats_rx.stats.load(Ordering::Relaxed) + alloced as usize;
         self.stats_rx.stats.store(update, Ordering::Relaxed);
-        // println!("rx {}, tx {}", self.stats_rx.stats.load(Ordering::Relaxed), self.stats_tx.stats.load(Ordering::Relaxed)); stdout().flush().unwrap();
         
 		Ok(alloced as u32)
     }
@@ -110,34 +105,12 @@ impl SimulatePort {
     }
 
     pub fn new_simulate_queue(&self, _queue: i32) -> Result<CacheAligned<SimulateQueue>> {
-        let listener = TcpListener::bind("localhost:6010")?;
-        let (stream, peer_addr) = listener.accept()?;
-        let peer_addr = peer_addr.to_string();
-        let local_addr = stream.local_addr()?;
-        println!("new_simulate_queue");
-        eprintln!(
-            "App:: accept  - local address is {}, peer address is {}",
-            local_addr, peer_addr
-        );
-
-        let mut reader = BufReader::new(stream);
-        let mut message = String::new();
-        
-        let read_bytes = reader.read_line(&mut message)?;
-        print!("{}", message);
-        let queue_addr: Vec<u64> = 
-                message.trim().split(' ')
-            .map(|s| s.parse().unwrap())
-            .collect();
-        println!("{:?}", queue_addr);
-            // fib(30);
-
-        drop(listener);
+        unsafe { mapping(); };
         Ok(CacheAligned::allocate(SimulateQueue {
             stats_rx: self.stats_rx.clone(),
             stats_tx: self.stats_tx.clone(),
-            recvq_ring: unsafe{ RingBuffer::attach_in_heap((NUM_RXD) as usize, queue_addr[0]).unwrap() }, 
-            sendq_ring: unsafe{ RingBuffer::attach_in_heap((NUM_TXD) as usize, queue_addr[1]).unwrap() },
+            recvq_ring: unsafe{RingBuffer::new_in_heap((NUM_RXD) as usize, &format!("{}_{}", RECVQ_PREFIX, 0)).unwrap() },
+            sendq_ring: unsafe{RingBuffer::new_in_heap((NUM_TXD) as usize, &format!("{}_{}", SENDQ_PREFIX, 0)).unwrap() },
         }))
     }
 

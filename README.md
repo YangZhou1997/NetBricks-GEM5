@@ -4,6 +4,41 @@
 [paper](https://people.eecs.berkeley.edu/~apanda/assets/papers/osdi16.pdf) for information
 about the architecture and design. Currently NetBricks requires a relatively modern Linux version.
 
+## How to run Netbricks locally 
+
+1. Enter into root and export necessary env: 
+    ```shell
+    sudo su 
+    export RTE_SDK=/users/yangzhou/tools/dpdk-stable-17.08.1
+    source ~/.cargo/env
+    cd NetBricks
+    ```
+2. Build NetBricks in release mode:
+    ```shell
+    # debug
+     
+    # release; might require 10mins for the first time. 
+    make build-ref
+    ```
+3. Enter `example/` folder and change configuration in config.sh.
+    *. `TRAFFIC` is the local pcap file that will feed to the NF instances
+    *. `MODE` decides whether you will run NF in debug mode or release mode
+    *. `TIME` is the time (seconds) that your NF instance will last (regardless of the pcap length); you can also use ctrl+c to kill the instance anytime. 
+4. Run the NF instances; currently, we support 7 NFs:
+    ```shell
+    cd examples
+    ./run_local.sh acl-fw
+    ./run_local.sh dpi
+    ./run_local.sh lpm
+    ./run_local.sh macswap
+    ./run_local.sh maglev
+    ./run_local.sh monitoring
+    ./run_local.sh nat-tcp-v4
+    ```
+
+### Note
+We will add ipsec version of there NFs (requiring encrypted .pcap files). 
+
 Up and Running
 ----------------
 
