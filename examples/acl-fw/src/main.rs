@@ -169,7 +169,7 @@ fn my_find<'a>(acls: &'a Vec<Acl>, flow: &Flow) -> Option<&'a Acl>{
 // }
 fn acl_match(p: &Tcp<Ipv4>) -> bool {
     let flow = p.flow();
-	// println!("{}", flow);
+	println!("{}", flow);
 	
     FLOW_CACHE2.with(|flow_cache2| {
 		let flow_cache2_lived = flow_cache2.borrow();

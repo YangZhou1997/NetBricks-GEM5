@@ -11,30 +11,45 @@ about the architecture and design. Currently NetBricks requires a relatively mod
     sudo su 
     export RTE_SDK=/users/yangzhou/tools/dpdk-stable-17.08.1
     source ~/.cargo/env
-    cd NetBricks
+    cd SafeBricks
     ```
-2. Build NetBricks in release mode:
-    ```shell
-    # debug
-     
-    # release; might require 10mins for the first time. 
-    make build-ref
-    ```
-3. Enter `example/` folder and change configuration in config.sh.
+
+2. In the `SafeBricks` folder, you can change configuration in `config.sh`.
     *. `TRAFFIC` is the local pcap file that will feed to the NF instances
     *. `MODE` decides whether you will run NF in debug mode or release mode
-    *. `TIME` is the time (seconds) that your NF instance will last (regardless of the pcap length); you can also use ctrl+c to kill the instance anytime. 
-4. Run the NF instances; currently, we support 7 NFs:
-    ```shell
-    cd examples
-    ./run_local.sh acl-fw
-    ./run_local.sh dpi
-    ./run_local.sh lpm
-    ./run_local.sh macswap
-    ./run_local.sh maglev
-    ./run_local.sh monitoring
-    ./run_local.sh nat-tcp-v4
+
+3. Build NetBricks (release or debug determined by `config.sh`):
+    ```shell     
+    # release might require 10mins for the first time. 
+    ./build_static_binary.sh
     ```
+
+4. Run the DPDK with traffic backed by local pcap files: 
+    ```shell
+    ./run_dpdk.sh
+    ```
+   Waiting for around 3 seconds to let dpdk setup finish. 
+
+5. In a new terminal tab, enter into root and export necessary env: 
+    ```shell
+    sudo su 
+    export RTE_SDK=/users/yangzhou/tools/dpdk-stable-17.08.1
+    source ~/.cargo/env
+    cd SafeBricks
+    ```
+
+6. Run the NF instances; currently, we support 7 NFs:
+    ```shell
+    ./run_static_binary.sh acl-fw
+    # ./run_static_binary.sh dpi
+    # ./run_static_binary.sh lpm
+    # ./run_static_binary.sh macswap
+    # ./run_static_binary.sh maglev
+    # ./run_static_binary.sh monitoring
+    # ./run_static_binary.sh nat-tcp-v4
+    ```
+7. Kill the running NF instances: 
+    Use ctrl + c (note that kill dpdk process will automatically trigger NF instance process being killed)
 
 ### Note
 We will add ipsec version of there NFs (requiring encrypted .pcap files). 

@@ -76,6 +76,10 @@ impl PacketRx for SimulateQueue {
     fn recv(&self, pkts: &mut [*mut MBuf]) -> Result<u32> {
         // pull packet from recvq;
         let recv_pkt_num_from_enclave = self.recvq_ring.read_from_head(pkts);
+        //  if recv_pkt_num_from_enclave != 0{
+            println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
+             stdout().flush().unwrap();
+        // }
         let alloced = recv_pkt_num_from_enclave;
         let update = self.stats_rx.stats.load(Ordering::Relaxed) + alloced as usize;
         self.stats_rx.stats.store(update, Ordering::Relaxed);

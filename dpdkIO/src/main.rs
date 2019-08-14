@@ -154,6 +154,9 @@ where
 
             pull_count[i] += 1;
 
+            let (rx, tx) = main_port.stats(0);
+            println!("Ring {} out-of-enclave: from nic {}, to sgx {}, from sgx {}, to nic {}", i, rx, pkt_count_from_nic[i], pkt_count_from_enclave[i], tx);
+
             if pkt_count_from_enclave[i] % PRINT_INTER == 0 {
                 if pkt_count_from_enclave[i] != 0 && recv_pkt_num_from_enclave != 0 {
                     let (rx, tx) = main_port.stats(0);
