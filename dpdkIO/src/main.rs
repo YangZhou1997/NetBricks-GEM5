@@ -35,7 +35,7 @@ use std::io::stdout;
 use std::io::Write;
 
 const PKT_NUM: u64 = (8 * 1024 * 1024);
-const PRINT_INTER: u64 = (1024 * 1024);
+const PRINT_INTER: u64 = (1024);
 
 // pull_count;
 lazy_static!{
@@ -154,8 +154,8 @@ where
 
             pull_count[i] += 1;
 
-            let (rx, tx) = main_port.stats(0);
-            println!("Ring {} out-of-enclave: from nic {}, to sgx {}, from sgx {}, to nic {}", i, rx, pkt_count_from_nic[i], pkt_count_from_enclave[i], tx);
+            // let (rx, tx) = main_port.stats(0);
+            // println!("Ring {} out-of-enclave: from nic {}, to sgx {}, from sgx {}, to nic {}", i, rx, pkt_count_from_nic[i], pkt_count_from_enclave[i], tx);
 
             if pkt_count_from_enclave[i] % PRINT_INTER == 0 {
                 if pkt_count_from_enclave[i] != 0 && recv_pkt_num_from_enclave != 0 {
@@ -210,7 +210,7 @@ fn main() -> PktResult<()> {
     assert!(core_ids.len() >= ports.len() + 1, "# available cores is not enough"); 
     // one core for pktpuller, one core for normal linux monitoring.
     // core_affinity::set_for_current(core_ids[0].clone());
-    core_affinity::set_for_current(core_ids[1].clone()); // run dpdk thread on core 1;
+    core_affinity::set_for_current(core_ids[5].clone()); // run dpdk thread on core 1;
 
     let mut server_count: u64 = 0;
     let mut client_count: u64 = 0;

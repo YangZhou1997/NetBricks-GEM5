@@ -34,7 +34,7 @@ where
         .map(|port| {
             ReceiveBatch::new(port.clone())
                 .map(dpi)
-                .send(port.clone())
+                .sendall(port.clone())
         })
         .collect();
 

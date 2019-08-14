@@ -26,7 +26,7 @@ where
         .map(|port| {
             ReceiveBatch::new(port.clone())
                 .map(macswap)
-                .send(port.clone())
+                .sendall(port.clone())
         })
         .collect();
 

@@ -55,6 +55,7 @@ impl PacketTx for SimulateQueue {
         let len = pkts.len();
         let update = self.stats_tx.stats.load(Ordering::Relaxed) + len as usize;
         self.stats_tx.stats.store(update, Ordering::Relaxed);
+        // println!("{}, {}, {}, {}, {}", update, self.sendq_ring.tail(), self.sendq_ring.head(), self.sendq_ring.size(), self.sendq_ring.mask());
 
         let mut cur_sent = 0;
         // push len mbuf pointers to sendq.
@@ -77,8 +78,8 @@ impl PacketRx for SimulateQueue {
         // pull packet from recvq;
         let recv_pkt_num_from_enclave = self.recvq_ring.read_from_head(pkts);
         //  if recv_pkt_num_from_enclave != 0{
-            println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
-             stdout().flush().unwrap();
+            // println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
+            //  stdout().flush().unwrap();
         // }
         let alloced = recv_pkt_num_from_enclave;
         let update = self.stats_rx.stats.load(Ordering::Relaxed) + alloced as usize;
