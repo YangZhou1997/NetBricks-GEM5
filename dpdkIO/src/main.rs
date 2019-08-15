@@ -35,7 +35,7 @@ use std::io::stdout;
 use std::io::Write;
 
 const PKT_NUM: u64 = (8 * 1024 * 1024);
-const PRINT_INTER: u64 = (1024);
+const PRINT_INTER: u64 = (1024 * 100);
 
 // pull_count;
 lazy_static!{

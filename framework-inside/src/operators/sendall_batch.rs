@@ -50,9 +50,9 @@ impl<B: Batch, Tx: PacketTx> Executable for SendAllBatch<B, Tx> {
                     transmit_q.push(mbuf);
                 }
                 Err(PacketError::Abort(mbuf, err)) => {
-                    // error_chain!(&err);
-                    // drop_q.push(mbuf);
-                    transmit_q.push(mbuf);
+                    error_chain!(&err);
+                    drop_q.push(mbuf);
+                    // transmit_q.push(mbuf);
                 }
             }
         }
