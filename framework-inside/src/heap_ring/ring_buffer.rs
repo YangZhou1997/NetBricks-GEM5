@@ -6,10 +6,9 @@ use std::io::Error as IOError;
 use std::ptr;
 use utils::PAGE_SIZE;
 use std::slice;
-use native::mbuf::MBuf;
+use native::mbuf::{MBuf, PKT_LEN};
 use std::sync::atomic::compiler_fence;
 use std::sync::atomic::Ordering;
-use std::process;
 use std::boxed::Box;
 
 /// Error related to the RingBuffer
@@ -49,8 +48,6 @@ impl Drop for SuperUsize {
         }
     }
 }
-
-pub const STOP_MARK: u32 = 0xabcdefff;
 
 #[derive(Clone)]
 /// A ring buffer which can be used to insert and read ordered data.
@@ -184,9 +181,6 @@ impl RingBuffer {
     #[inline]
     pub fn read_from_head(&self, mbufs: &mut [*mut MBuf]) -> usize {
 		let ring_size = self.size();
-        if ring_size == STOP_MARK as usize {
-            process::exit(1);
-        }
         let available = self.tail().wrapping_sub(self.head());
         let to_read = min(mbufs.len(), available);
         let offset = self.head() & self.mask();
@@ -220,7 +214,7 @@ impl RingBuffer {
     #[inline]
     pub fn gen_mbuf_batch(mbufs: &mut [*mut MBuf], batch_size: usize) {
         for i in 0..batch_size {
-            let mut mbuf_instance = MBuf::new(1450);
+            let mut mbuf_instance = MBuf::new(PKT_LEN - 4);
             mbufs[i] = Box::leak(Box::new(mbuf_instance)) as *mut MBuf;
         }
     }

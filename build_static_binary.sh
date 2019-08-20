@@ -17,8 +17,8 @@ echo "Current Cargo Incremental Setting: ${CARGO_INCREMENTAL}"
 echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec acl-fw-ipsec-sha dpi-ipsec-sha lpm-ipsec-sha macswap-ipsec-sha maglev-ipsec-sha monitoring-ipsec-sha nat-tcp-v4-ipsec-sha
-# for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4
-for TASK in acl-fw
+for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4
+# for TASK in acl-fw
 do 
 	# Build enclave APP
 	pushd examples/$TASK

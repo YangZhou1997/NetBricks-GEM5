@@ -111,9 +111,12 @@ impl StandaloneScheduler {
         let next = self.next_task + 1;
         if next == len {
             self.next_task = 0;
-            // if self.npkts >= self.tol_pkts {
-            //     self.execute_loop = false;
-            // }
+            if self.npkts >= self.tol_pkts {
+                self.execute_loop = false;
+            }
+            if self.npkts % (1024 * 1024 / 16) == 0 {
+                println!("packets processed: {}", self.npkts);
+            }
         } else {
             self.next_task = next;
         };

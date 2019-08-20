@@ -14,7 +14,7 @@ mod context;
 pub mod embedded_scheduler;
 mod standalone_scheduler;
 
-pub const PKT_NUM: u64 = (8 * 1024 * 1024);
+pub const PKT_NUM: u64 = (2 * 1024 * 1024);
 
 /// Errors related to schedulers/scheduling
 // TODO: extend this, as we probably want more error handling over
