@@ -10,6 +10,7 @@ use native::mbuf::MBuf;
 use std::sync::atomic::compiler_fence;
 use std::sync::atomic::Ordering;
 use std::process;
+use std::boxed::Box;
 
 /// Error related to the RingBuffer
 #[derive(Debug, Fail)]
@@ -117,6 +118,7 @@ impl RingBuffer {
         let mut mbufs: &mut [*mut MBuf] = mbufs_vec.as_mut_slice();
         RingBuffer::gen_mbuf_batch(mbufs, 32);
         rb.write_at_tail(mbufs);
+        drop(mbufs);
 
         Ok(rb)
     }
@@ -197,9 +199,7 @@ impl RingBuffer {
         let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
         RingBuffer::gen_mbuf_batch(new_mbufs, 32);
         self.write_at_tail(new_mbufs);
-
-        unsafe{println!("read_from_head: gen {}", (*(new_mbufs[0])).data_len());}
-        unsafe{println!("read_from_head {}", (*(mbufs[0])).data_len());}
+        drop(new_mbufs);
 
         reads
     }
@@ -207,44 +207,32 @@ impl RingBuffer {
     /// Write data at the end of the buffer. The amount of data written might be smaller than input.
     #[inline]
     pub fn write_at_tail(&self, mbufs: &[*mut MBuf]) -> usize {
-        unsafe{println!("write_at_tail {}", (*(mbufs[0])).data_len());}
-
         let available = self.size().wrapping_add(self.head()).wrapping_sub(self.tail());
         let to_write = min(mbufs.len(), available);
         let offset = self.tail() & self.mask();
-        unsafe{println!("write_at_tail1 {}", (*(mbufs[0])).data_len());}
-
         let writes = self.wrapped_write(offset, &mbufs[..to_write]);
-        unsafe{println!("write_at_tail2 {}", (*(mbufs[0])).data_len());}
-        
         compiler_fence(Ordering::Release);
-        unsafe{println!("write_at_tail3 {}", (*(mbufs[0])).data_len());}
-        unsafe{println!("write_at_tail4 {}", (*(mbufs[0])).data_len());}
-
         self.wrapping_add_tail(writes);
 
-        unsafe{println!("write_at_tail5 {}", (*(mbufs[0])).data_len());}
         writes
     }
 
     #[inline]
     pub fn gen_mbuf_batch(mbufs: &mut [*mut MBuf], batch_size: usize) {
         for i in 0..batch_size {
-            use std::mem;
             let mut mbuf_instance = MBuf::new(1450);
-            mbufs[i] = &mut mbuf_instance as *mut MBuf;
-            println!("gen_mbuf_batch mbuf datalen {}", mbuf_instance.data_len());
-            mem::forget(mbuf_instance);
+            mbufs[i] = Box::leak(Box::new(mbuf_instance)) as *mut MBuf;
         }
     }
-
+    // How to drop a leaked reference: 
+    // https://doc.rust-lang.org/std/boxed/struct.Box.html
     #[inline]
     pub fn free_mbuf_batch(mbufs: &[*mut MBuf], batch_size: usize) {
         unsafe{
             use std::ptr;
             for i in 0..batch_size {
-                ptr::drop_in_place(mbufs[i]);
-                // drop(*(mbufs[i]));
+                let temp_box = Box::from_raw(mbufs[i]);
+                drop(temp_box);
             }
         }
     }

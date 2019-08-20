@@ -136,7 +136,6 @@ where
             ReceiveBatch::new(port.clone())
                 .map(|p| {
                     let mut ethernet = p.parse::<Ethernet>()?;
-                    println!("{}", ethernet);
                     ethernet.swap_addresses();
                     let v4 = ethernet.parse::<Ipv4>()?;
                     let tcp = v4.parse::<Tcp<Ipv4>>()?;

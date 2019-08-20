@@ -30,8 +30,6 @@ pub enum BufferError {
 #[inline]
 pub fn read_item<T: Fixed>(mbuf: *mut MBuf, offset: usize) -> Result<*mut T> {
     unsafe {
-        println!("buffer read_item data_len {}", (*mbuf).data_len());
-
         if offset > (*mbuf).data_len() {
             Err(BufferError::BadOffset(offset).into())
         } else if offset + T::size() > (*mbuf).data_len() {

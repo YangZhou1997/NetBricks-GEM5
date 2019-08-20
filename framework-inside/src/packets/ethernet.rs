@@ -280,7 +280,6 @@ impl Packet for Ethernet {
         let mbuf = envelope.mbuf();
         let offset = envelope.payload_offset();
         let header = buffer::read_item::<Self::Header>(mbuf, offset)?;
-        println!("offset {}", offset);
 
         Ok(Ethernet {
             envelope,

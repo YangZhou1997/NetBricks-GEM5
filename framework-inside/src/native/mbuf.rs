@@ -12,7 +12,7 @@ struct SuperBox { my_box: Box<[u8]> }
 impl Drop for SuperBox {
     fn drop(&mut self) {
         unsafe {
-            println!("SuperBox freed");
+            // println!("SuperBox freed");
         }
     }
 }
@@ -34,7 +34,7 @@ pub const MAX_MBUF_SIZE: u16 = 2048;
 impl Drop for MBuf {
     fn drop(&mut self) {
         unsafe {
-            println!("rte_mbuf freed");
+            // println!("rte_mbuf freed");
         }
     }
 }

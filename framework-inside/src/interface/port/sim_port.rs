@@ -37,8 +37,7 @@ impl fmt::Debug for SimulatePort {
 pub struct SimulateQueue {
     stats_rx: Arc<CacheAligned<PortStats>>,
     stats_tx: Arc<CacheAligned<PortStats>>,
-    recvq_ring: RingBuffer,
-    sendq_ring: RingBuffer,
+    ring: RingBuffer,
 }
 
 impl fmt::Display for SimulateQueue {
@@ -55,16 +54,7 @@ impl PacketTx for SimulateQueue {
         self.stats_tx.stats.store(update, Ordering::Relaxed);
         // println!("{}, {}, {}, {}, {}", update, self.sendq_ring.tail(), self.sendq_ring.head(), self.sendq_ring.size(), self.sendq_ring.mask());
 
-        // let mut cur_sent = 0;
-        // push len mbuf pointers to sendq.
-        // if !pkts.is_empty() {
-        //     while cur_sent < len {
-        //         let sent = self.sendq_ring.write_at_tail(&mut pkts[cur_sent..]);
-        //         cur_sent += sent;
-        //     }
-        // }
         RingBuffer::free_mbuf_batch(pkts, len);
-        // mbuf_free_bulk(pkts.as_mut_ptr(), len);
         Ok(len as u32)
     }
 }
@@ -75,11 +65,12 @@ impl PacketRx for SimulateQueue {
     #[inline]
     fn recv(&self, pkts: &mut [*mut MBuf]) -> Result<u32> {
         // pull packet from recvq;
-        let recv_pkt_num_from_enclave = self.recvq_ring.read_from_head(pkts);
-        unsafe{println!("sim_port recv data_len {}", (*(pkts[0])).data_len());}
+        let recv_pkt_num_from_enclave = self.ring.read_from_head(pkts);
+        // RingBuffer::gen_mbuf_batch(pkts, 32);
+        // let recv_pkt_num_from_enclave = 32;
 
         //  if recv_pkt_num_from_enclave != 0{
-            println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
+            // println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.ring.tail(), self.ring.head(), self.ring.size(), self.ring.mask());
             //  stdout().flush().unwrap();
         // }
         let alloced = recv_pkt_num_from_enclave;
@@ -102,8 +93,7 @@ impl SimulatePort {
         Ok(CacheAligned::allocate(SimulateQueue {
             stats_rx: self.stats_rx.clone(),
             stats_tx: self.stats_tx.clone(),
-            recvq_ring: unsafe{RingBuffer::new_in_heap((NUM_RXD) as usize).unwrap() },
-            sendq_ring: unsafe{RingBuffer::new_in_heap((NUM_TXD) as usize).unwrap() },
+            ring: unsafe{RingBuffer::new_in_heap((NUM_RXD) as usize).unwrap() },
         }))
     }
 
