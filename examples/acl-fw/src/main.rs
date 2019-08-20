@@ -161,12 +161,6 @@ fn my_find<'a>(acls: &'a Vec<Acl>, flow: &Flow) -> Option<&'a Acl>{
     None
 }
 
-// thread_local! {
-//     pub static PKT_COUNT: RefCell<usize> = {
-//         let m:usize = 0;
-//         RefCell::new(m)
-//     };
-// }
 fn acl_match(p: &Tcp<Ipv4>) -> bool {
     let flow = p.flow();
 	// println!("{}", flow);
@@ -174,13 +168,6 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
     FLOW_CACHE2.with(|flow_cache2| {
 		let flow_cache2_lived = flow_cache2.borrow();
 		if let Some(s) = flow_cache2_lived.get(&flow) {
-            // PKT_COUNT.with(|pkt_count| {
-            //     let num = *(pkt_count.borrow());
-            //     if num % (1024) == 0 {
-            //         println!("{}: {}", num, flow);
-            //     }
-            //     (*pkt_count.borrow_mut()) += 1;
-            // });
 			*s
 		}else {
 			drop(flow_cache2_lived);
@@ -188,7 +175,6 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
 			let mut flag = false;
 		    ACLS.with(|acls| {
 		        if let Some(acl) = acls.borrow().iter().find(|ref acl| acl.matches(&flow)) {
-    		        // if let Some(acl) = my_find(&acls.borrow(), &flow) {
 		            if !acl.drop {
 		                FLOW_CACHE.with(|flow_cache| {
 		                    (*flow_cache.borrow_mut()).insert(flow);
@@ -212,7 +198,16 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
 fn main() -> Result<()> {
     let configuration = load_config()?;
     println!("{}", configuration);
+    
+    use std::env;
+    let argvs: Vec<String> = env::args().collect();
+    let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
+    if argvs.len() == 2 {
+        pkt_num = argvs[1].parse::<u64>().unwrap();
+    }
+    println!("pkt_num: {}", pkt_num);
+
     let mut context = initialize_system(&configuration)?;
-    context.run(Arc::new(install), PKT_NUM); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

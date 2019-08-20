@@ -22,4 +22,9 @@ if [ $# -ge 1 ]; then
 fi
 echo $TASK
 
-RUST_BACKTRACE=1 target/x86_64-unknown-linux-musl/$MODE/$TASK
+if [ $# -eq 2 ]; then
+    RUST_BACKTRACE=1 target/x86_64-unknown-linux-musl/$MODE/$TASK $2
+else
+    RUST_BACKTRACE=1 target/x86_64-unknown-linux-musl/$MODE/$TASK
+fi
+

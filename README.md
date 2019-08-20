@@ -15,44 +15,39 @@ about the architecture and design. Currently NetBricks requires a relatively mod
     ```
 
 2. In the `SafeBricks` folder, you can change configuration in `config.sh`.
-    *. `TRAFFIC` is the local pcap file that will feed to the NF instances
     *. `MODE` decides whether you will run NF in debug mode or release mode
 
 3. Build NetBricks (release or debug determined by `config.sh`):
-    ```shell     
+    ```shell
     # release might require 10mins for the first time. 
     ./build_static_binary.sh
     ```
-
-4. Run the DPDK with traffic backed by local pcap files: 
+    
+4. Run the NF instances; currently, we support 7 NFs:
     ```shell
-    ./run_dpdk.sh
+    ./run_static_binary.sh acl-fw 1048576
+    # ./run_static_binary.sh dpi 1048576
+    # ./run_static_binary.sh lpm 1048576
+    # ./run_static_binary.sh macswap 1048576
+    # ./run_static_binary.sh maglev 1048576
+    # ./run_static_binary.sh monitoring 1048576
+    # ./run_static_binary.sh nat-tcp-v4 1048576
     ```
-   Waiting for around 3 seconds to let dpdk setup finish. 
+    You can specify the number of packet using commandline as shown above. 
 
-5. In a new terminal tab, enter into root and export necessary env: 
-    ```shell
-    sudo su 
-    export RTE_SDK=/users/yangzhou/tools/dpdk-stable-17.08.1
-    source ~/.cargo/env
-    cd SafeBricks
-    ```
-
-6. Run the NF instances; currently, we support 7 NFs:
-    ```shell
-    ./run_static_binary.sh acl-fw
-    # ./run_static_binary.sh dpi
-    # ./run_static_binary.sh lpm
-    # ./run_static_binary.sh macswap
-    # ./run_static_binary.sh maglev
-    # ./run_static_binary.sh monitoring
-    # ./run_static_binary.sh nat-tcp-v4
-    ```
-7. Kill the running NF instances: 
-    Use ctrl + c (note that kill dpdk process will automatically trigger NF instance process being killed)
-
+5. Kill the running NF instances: 
+    Wait for the specified number of packet getting processed, or ctrl + c
+    
 ### Note
-We will add ipsec version of there NFs (requiring encrypted .pcap files). 
+1. Binary files are located in `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/release` or `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/debug`. 
+2. Since we are generating packets (both header and payload) with rand and hash, the packet processing speed is pretty slow. 
+    For example, 
+    ```Shell
+    time ./run_static_binary.sh acl-fw 1000000
+    real    4m28.498s
+    user    3m17.712s
+    sys     1m10.796s
+    ```
 
 Up and Running
 ----------------
