@@ -17,21 +17,9 @@ fi
 echo "Current Cargo Incremental Setting: ${CARGO_INCREMENTAL}"
 echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 
-DPDK_VER=17.08
-DPDK_HOME="/opt/dpdk/dpdk-stable-${DPDK_VER}"
-DPDK_LD_PATH="${DPDK_HOME}/build/lib"
-
-NATIVE_LIB_PATH="${BASE_DIR}/native"
-
 if [ $# -ge 1 ]; then
     TASK=$1
 fi
 echo $TASK
 
-# Execute
-export PATH="${BIN_DIR}:${PATH}"
-export LD_LIBRARY_PATH="${NATIVE_LIB_PATH}:${DPDK_LD_PATH}:${LD_LIBRARY_PATH}"
-# echo "sudo env PATH=\"$PATH\" LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" LD_PRELOAD=\"$LD_PRELOAD\" $executable \"$@\""
-
-env PATH="$PATH" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" LD_PRELOAD="$LD_PRELOAD" \
 RUST_BACKTRACE=1 target/x86_64-unknown-linux-musl/$MODE/$TASK

@@ -136,6 +136,7 @@ where
             ReceiveBatch::new(port.clone())
                 .map(|p| {
                     let mut ethernet = p.parse::<Ethernet>()?;
+                    println!("{}", ethernet);
                     ethernet.swap_addresses();
                     let v4 = ethernet.parse::<Ipv4>()?;
                     let tcp = v4.parse::<Tcp<Ipv4>>()?;
@@ -169,7 +170,7 @@ fn my_find<'a>(acls: &'a Vec<Acl>, flow: &Flow) -> Option<&'a Acl>{
 // }
 fn acl_match(p: &Tcp<Ipv4>) -> bool {
     let flow = p.flow();
-	// println!("{}", flow);
+	println!("{}", flow);
 	
     FLOW_CACHE2.with(|flow_cache2| {
 		let flow_cache2_lived = flow_cache2.borrow();

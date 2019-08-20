@@ -3,8 +3,6 @@ use failure::Fail;
 use std::cmp::min;
 use std::io::{Read, Write};
 use std::io::Error as IOError;
-
-/// Shareable data structures.
 use std::ptr;
 use utils::PAGE_SIZE;
 use std::slice;
@@ -12,18 +10,22 @@ use native::mbuf::MBuf;
 use std::sync::atomic::compiler_fence;
 use std::sync::atomic::Ordering;
 use std::process;
-use std::io::stdout;
-
-use std::ffi::CString;
-use libc::{self, c_void, close, ftruncate, mmap, munmap, shm_open, shm_unlink};
-
-pub const SENDQ_PREFIX: &str = "/sb_sendq";
-pub const RECVQ_PREFIX: &str = "/sb_recvq";
 
 /// Error related to the RingBuffer
 #[derive(Debug, Fail)]
 #[fail(display = "Bad ring size {}, must be a power of 2", _0)]
 struct InvalidRingSize(usize);
+
+#[derive(Clone)]
+struct SuperBox { my_box: Box<[u8]> }
+
+impl Drop for SuperBox {
+    fn drop(&mut self) {
+        unsafe {
+            println!("SuperBox freed");
+        }
+    }
+}
 
 #[derive(Clone)]
 struct SuperVec { my_vec: *mut (*mut MBuf) }
@@ -52,6 +54,8 @@ pub const STOP_MARK: u32 = 0xabcdefff;
 #[derive(Clone)]
 /// A ring buffer which can be used to insert and read ordered data.
 pub struct RingBuffer {
+    /// boxed ring; avoid heap memory being dropped;
+    boxed: SuperBox,
     /// Head, signifies where a consumer should read from.
     pub head: SuperUsize,
     /// Tail, signifies where a producer should write.
@@ -79,58 +83,19 @@ unsafe impl Send for RingBuffer {}
 
 #[cfg_attr(feature = "dev", allow(len_without_is_empty))]
 impl RingBuffer {
-
-    pub unsafe fn new_in_heap(ring_size: usize, name: &str) -> Result<RingBuffer>{
+    /// Create a new wrapping ring buffer. The ring buffer size is specified in bytes and must be a power of 2. 
+    /// bytes is the number of bytes of RingBuffer::vec
+    /// we will require additional 16 bytes to store the meta-data for this ring.
+    pub unsafe fn new_in_heap(ring_size: usize) -> Result<RingBuffer>{
         if ring_size & (ring_size - 1) != 0 {
             // We need pages to be a power of 2.
             return Err(InvalidRingSize(ring_size).into());
         }
-        let size = ring_size * 8 + 16;
 
-        // let temp_vec: Vec<u8> = vec![0; ring_size * 8 + 16];
-        // let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
-        let name = CString::new(name).unwrap();
-        let mut fd = shm_open(
-            name.as_ptr(),
-            libc::O_CREAT | libc::O_EXCL | libc::O_RDWR,
-            0o700,
-        );
-        if fd == -1 {
-            if let Some(e) = IOError::last_os_error().raw_os_error() {
-                if e == libc::EEXIST {
-                    // println!("unlink previous shm");
-                    // shm_unlink(name.as_ptr());
+        let temp_vec: Vec<u8> = vec![0; ring_size * 8 + 16];
+        let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
 
-                    // if already exist, we just attach to it, instead of unlinking it. 
-                    println!("attach to previous shm");
-                    fd = shm_open(
-                        name.as_ptr(),
-                        libc::O_CREAT | libc::O_RDWR,
-                        0o700,
-                    );
-                }
-            }
-        };
-        assert!(fd >= 0, "Could not create shared memory segment");
-        let ftret = ftruncate(fd, size as i64);
-        assert!(ftret == 0, "Could not truncate");
-        let address = mmap(
-            ptr::null_mut(),
-            size,
-            libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_POPULATE | libc::MAP_SHARED,
-            fd,
-            0,
-        );
-        if address == libc::MAP_FAILED {
-            let err_string = CString::new("mmap failed").unwrap();
-            libc::perror(err_string.as_ptr());
-            panic!("Could not mmap shared region");
-        }
-        close(fd);
-
-        let address = address as *mut u8;
-        // let address = &mut boxed.my_box[0] as *mut u8;
+        let address = &mut boxed.my_box[0] as *mut u8;
         unsafe{
             *(address as *mut usize) = 0;
             *((address as *mut usize).offset(1)) = 0;
@@ -138,34 +103,22 @@ impl RingBuffer {
             *((address as *mut usize).offset(3)) = ring_size - 1;
         }
 
-        Ok(RingBuffer {
-            head: SuperUsize{ my_usize: (address as *mut usize) },
-            tail: SuperUsize{ my_usize: (address as *mut usize).offset(1) },
-            size: SuperUsize{ my_usize: (address as *mut usize).offset(2) },
-            mask: SuperUsize{ my_usize: (address as *mut usize).offset(3) },
-            vec: SuperVec{ my_vec: (address as *mut usize).offset(4) as (*mut (*mut MBuf))},
-        })
-    }
-
-    /// Create a new wrapping ring buffer. The ring buffer size is specified in bytes and must be a power of 2. 
-    /// bytes is the number of bytes of RingBuffer::vec
-    /// we will require additional 16 bytes to store the meta-data for this ring.
-    pub unsafe fn attach_in_heap(bytes: usize, queue_addr_u64: u64) -> Result<RingBuffer>{
-        if bytes & (bytes - 1) != 0 {
-            // We need pages to be a power of 2.
-            return Err(InvalidRingSize(bytes).into());
-        }
-
-        let head_addr = queue_addr_u64 as (*mut u32);
-        let address = head_addr as *mut u8;
-
-        Ok(RingBuffer {
+        let mut rb = RingBuffer {
+            boxed,
             head: SuperUsize{ my_usize: (address as *mut usize) },
             tail: SuperUsize{ my_usize: (address as *mut usize).offset(1) }, 
             size: SuperUsize{ my_usize: (address as *mut usize).offset(2) },
             mask: SuperUsize{ my_usize: (address as *mut usize).offset(3) },
-            vec: SuperVec{ my_vec: (address as *mut usize).offset(4) as (*mut (*mut MBuf))},
-        })
+            vec: SuperVec{ my_vec: (address as *mut usize).offset(4) as (*mut (*mut MBuf)) },
+        };
+        // Write inital 32 mbufs. 
+        let mut mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
+        unsafe{mbufs_vec.set_len(32);}
+        let mut mbufs: &mut [*mut MBuf] = mbufs_vec.as_mut_slice();
+        RingBuffer::gen_mbuf_batch(mbufs, 32);
+        rb.write_at_tail(mbufs);
+
+        Ok(rb)
     }
 
 
@@ -238,19 +191,62 @@ impl RingBuffer {
         let reads = self.wrapped_read(offset, &mut mbufs[..to_read]);
         compiler_fence(Ordering::Release);
         self.wrapping_add_head(reads);
+
+        let mut new_mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
+        unsafe{new_mbufs_vec.set_len(32);}
+        let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
+        RingBuffer::gen_mbuf_batch(new_mbufs, 32);
+        self.write_at_tail(new_mbufs);
+
+        unsafe{println!("read_from_head: gen {}", (*(new_mbufs[0])).data_len());}
+        unsafe{println!("read_from_head {}", (*(mbufs[0])).data_len());}
+
         reads
     }
 
     /// Write data at the end of the buffer. The amount of data written might be smaller than input.
     #[inline]
     pub fn write_at_tail(&self, mbufs: &[*mut MBuf]) -> usize {
+        unsafe{println!("write_at_tail {}", (*(mbufs[0])).data_len());}
+
         let available = self.size().wrapping_add(self.head()).wrapping_sub(self.tail());
         let to_write = min(mbufs.len(), available);
         let offset = self.tail() & self.mask();
+        unsafe{println!("write_at_tail1 {}", (*(mbufs[0])).data_len());}
+
         let writes = self.wrapped_write(offset, &mbufs[..to_write]);
+        unsafe{println!("write_at_tail2 {}", (*(mbufs[0])).data_len());}
+        
         compiler_fence(Ordering::Release);
+        unsafe{println!("write_at_tail3 {}", (*(mbufs[0])).data_len());}
+        unsafe{println!("write_at_tail4 {}", (*(mbufs[0])).data_len());}
+
         self.wrapping_add_tail(writes);
+
+        unsafe{println!("write_at_tail5 {}", (*(mbufs[0])).data_len());}
         writes
+    }
+
+    #[inline]
+    pub fn gen_mbuf_batch(mbufs: &mut [*mut MBuf], batch_size: usize) {
+        for i in 0..batch_size {
+            use std::mem;
+            let mut mbuf_instance = MBuf::new(1450);
+            mbufs[i] = &mut mbuf_instance as *mut MBuf;
+            println!("gen_mbuf_batch mbuf datalen {}", mbuf_instance.data_len());
+            mem::forget(mbuf_instance);
+        }
+    }
+
+    #[inline]
+    pub fn free_mbuf_batch(mbufs: &[*mut MBuf], batch_size: usize) {
+        unsafe{
+            use std::ptr;
+            for i in 0..batch_size {
+                ptr::drop_in_place(mbufs[i]);
+                // drop(*(mbufs[i]));
+            }
+        }
     }
 
     /// Reads data from self.vec, wrapping around the end of the Vec if necessary. Returns the

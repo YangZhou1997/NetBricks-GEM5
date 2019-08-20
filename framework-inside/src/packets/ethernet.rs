@@ -130,6 +130,44 @@ pub struct EthernetHeader {
     src: MacAddr,
     ether_type: u16,
 }
+impl EthernetHeader {
+    #[inline]
+    pub fn src(&self) -> MacAddr {
+        self.src
+    }
+
+    #[inline]
+    pub fn set_src(&mut self, src: MacAddr) {
+        self.src = src
+    }
+
+    #[inline]
+    pub fn dst(&self) -> MacAddr {
+        self.dst
+    }
+
+    #[inline]
+    pub fn set_dst(&mut self, dst: MacAddr) {
+        self.dst = dst
+    }
+
+    #[inline]
+    pub fn ether_type(&self) -> EtherType {
+        EtherType::new(u16::from_be(self.ether_type))
+    }
+
+    #[inline]
+    pub fn set_ether_type(&mut self, ether_type: EtherType) {
+        self.ether_type = u16::to_be(ether_type.0)
+    }
+
+    #[inline]
+    pub fn init(&mut self, dst: MacAddr, src: MacAddr) {
+        self.set_dst(dst);
+        self.set_src(src);
+        self.set_ether_type(EtherTypes::Ipv4);
+    }
+}
 
 impl Header for EthernetHeader {}
 
@@ -242,6 +280,7 @@ impl Packet for Ethernet {
         let mbuf = envelope.mbuf();
         let offset = envelope.payload_offset();
         let header = buffer::read_item::<Self::Header>(mbuf, offset)?;
+        println!("offset {}", offset);
 
         Ok(Ethernet {
             envelope,

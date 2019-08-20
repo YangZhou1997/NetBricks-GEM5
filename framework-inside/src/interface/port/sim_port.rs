@@ -21,8 +21,6 @@ use std::slice;
 
 use heap_ring::ring_buffer::*;
 
-#[link(name="mapping", kind="static")]
-extern { fn mapping(); }
 
 pub struct SimulatePort {
     stats_rx: Arc<CacheAligned<PortStats>>,
@@ -57,14 +55,15 @@ impl PacketTx for SimulateQueue {
         self.stats_tx.stats.store(update, Ordering::Relaxed);
         // println!("{}, {}, {}, {}, {}", update, self.sendq_ring.tail(), self.sendq_ring.head(), self.sendq_ring.size(), self.sendq_ring.mask());
 
-        let mut cur_sent = 0;
+        // let mut cur_sent = 0;
         // push len mbuf pointers to sendq.
-        if !pkts.is_empty() {
-            while cur_sent < len {
-                let sent = self.sendq_ring.write_at_tail(&mut pkts[cur_sent..]);
-                cur_sent += sent;
-            }
-        }
+        // if !pkts.is_empty() {
+        //     while cur_sent < len {
+        //         let sent = self.sendq_ring.write_at_tail(&mut pkts[cur_sent..]);
+        //         cur_sent += sent;
+        //     }
+        // }
+        RingBuffer::free_mbuf_batch(pkts, len);
         // mbuf_free_bulk(pkts.as_mut_ptr(), len);
         Ok(len as u32)
     }
@@ -77,8 +76,10 @@ impl PacketRx for SimulateQueue {
     fn recv(&self, pkts: &mut [*mut MBuf]) -> Result<u32> {
         // pull packet from recvq;
         let recv_pkt_num_from_enclave = self.recvq_ring.read_from_head(pkts);
+        unsafe{println!("sim_port recv data_len {}", (*(pkts[0])).data_len());}
+
         //  if recv_pkt_num_from_enclave != 0{
-            // println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
+            println!("{}, {}, {}, {}, {}", recv_pkt_num_from_enclave, self.recvq_ring.tail(), self.recvq_ring.head(), self.recvq_ring.size(), self.recvq_ring.mask());
             //  stdout().flush().unwrap();
         // }
         let alloced = recv_pkt_num_from_enclave;
@@ -86,18 +87,6 @@ impl PacketRx for SimulateQueue {
         self.stats_rx.stats.store(update, Ordering::Relaxed);
         
 		Ok(alloced as u32)
-    }
-}
-
-fn fib(n: u64) -> u64{
-    if n == 0{
-        return 0;
-    }
-    else if n == 1{
-        return 1;
-    }
-    else{
-        return fib(n - 1) + fib(n - 2); 
     }
 }
 
@@ -110,12 +99,11 @@ impl SimulatePort {
     }
 
     pub fn new_simulate_queue(&self, _queue: i32) -> Result<CacheAligned<SimulateQueue>> {
-        unsafe { mapping(); };
         Ok(CacheAligned::allocate(SimulateQueue {
             stats_rx: self.stats_rx.clone(),
             stats_tx: self.stats_tx.clone(),
-            recvq_ring: unsafe{RingBuffer::new_in_heap((NUM_RXD) as usize, &format!("{}_{}", RECVQ_PREFIX, 0)).unwrap() },
-            sendq_ring: unsafe{RingBuffer::new_in_heap((NUM_TXD) as usize, &format!("{}_{}", SENDQ_PREFIX, 0)).unwrap() },
+            recvq_ring: unsafe{RingBuffer::new_in_heap((NUM_RXD) as usize).unwrap() },
+            sendq_ring: unsafe{RingBuffer::new_in_heap((NUM_TXD) as usize).unwrap() },
         }))
     }
 

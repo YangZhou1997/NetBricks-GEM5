@@ -53,6 +53,7 @@ impl<Rx: PacketRx> Batch for ReceiveBatch<Rx> {
             match self.port.recv(self.buffers.as_mut_slice()) {
                 Ok(received) => {
                     self.buffers.set_len(received as usize);
+                    println!("received_batch {}", received);
                 },
                 // the underlying DPDK method `rte_eth_rx_burst` will
                 // never return an error. The error arm is unreachable

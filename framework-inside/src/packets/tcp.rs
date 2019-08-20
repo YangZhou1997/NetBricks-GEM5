@@ -150,6 +150,33 @@ impl TcpHeader{
     pub fn set_dst_port(&mut self, dst_port: u16) {
         self.dst_port = u16::to_be(dst_port);
     }
+
+    #[inline]
+    pub fn data_offset(&self) -> u8 {
+        (self.offset_to_ns & 0xf0) >> 4
+    }
+
+    #[inline]
+    pub fn set_offset_to_ns(&mut self, offset_to_ns: u8) {
+        self.offset_to_ns = offset_to_ns;
+    }
+
+    #[inline]
+    pub fn flags(&self) -> u8 {
+        self.flags
+    }
+
+    #[inline]
+    pub fn set_flags(&mut self, flags: u8) {
+        self.flags = flags;
+    }
+
+    pub fn init(&mut self, src_port: u16, dst_port: u16) {
+        self.set_src_port(src_port);
+        self.set_dst_port(dst_port);
+        self.set_offset_to_ns(0x50);
+        self.set_flags(0x10);
+    }
 }
 
 

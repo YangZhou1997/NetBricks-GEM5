@@ -1,75 +1,73 @@
-use super::super::native_include as ldpdk;
+// use super::super::native_include as ldpdk;
 // use self::ldpdk::*;
-pub type MBuf = ldpdk::rte_mbuf;
+use super::super::packets::{EthernetHeader, MacAddr};
+use super::super::packets::ip::v4::Ipv4Header;
+use super::super::packets::ip::ProtocolNumbers;
+use super::super::packets::TcpHeader;
+use std::net::Ipv4Addr;
+
+#[derive(Clone)]
+struct SuperBox { my_box: Box<[u8]> }
+
+impl Drop for SuperBox {
+    fn drop(&mut self) {
+        unsafe {
+            println!("SuperBox freed");
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct rte_mbuf {
+    pub buf_addr: *mut u8,
+    boxed: SuperBox, 
+    pub data_off: u16, 
+    pub pkt_len: u32,
+    pub data_len: u16,
+    pub buf_len: u16,
+}
+
+pub type MBuf = rte_mbuf;
+
 pub const MAX_MBUF_SIZE: u16 = 2048;
 
 impl Drop for MBuf {
     fn drop(&mut self) {
         unsafe {
-            println!("We do not allow MBuf to be freed by Rust (dpdk will free it)");
+            println!("rte_mbuf freed");
         }
     }
 }
 
 impl MBuf {
+    // what I need to do is to 
+    // let buf_addr point to the start of the ethernet packet. 
+    // let data_off be 0.
     #[inline]
-    pub fn read_metadata_slot(mbuf: *mut MBuf, slot: usize) -> usize {
-        unsafe {
-            let ptr = (mbuf.offset(1) as *mut usize).add(slot);
-            *ptr
+    pub fn new(pkt_len: u32) -> MBuf {
+        // pkt_len is the length of the whole ethernet packet. 
+        assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
+        let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
+        let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
+        let address = &mut boxed.my_box[0] as *mut u8;
+
+        unsafe{
+            let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
+            let ip_hdr: *mut Ipv4Header = address.offset(14) as *mut Ipv4Header;
+            let tcp_hdr: *mut TcpHeader = address.offset(14 + 20) as *mut TcpHeader;
+            (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
+            (*ip_hdr).init(Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 2), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
+            (*tcp_hdr).init(0x1234, 0xabcd);
         }
-    }
 
-    // #[inline]
-    // pub fn new(pkt_len: u32) -> MBuf {
-    //     assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
-    //     MBuf{
-    //         cacheline0: MARKER,
-    //         buf_addr: *mut ::std::os::raw::c_void,
-    //         buf_physaddr: Default::default(),
-    //         rearm_data: MARKER64,
-    //         data_off: Default::default(),
-    //         __bindgen_anon_1: rte_mbuf__bindgen_ty_1{0},
-    //         nb_segs: Default::default(),
-    //         port: Default::default(),
-    //         ol_flags: Default::default(),
-    //         rx_descriptor_fields1: MARKER,
-    //         __bindgen_anon_2: rte_mbuf__bindgen_ty_2,
-    //         pkt_len: Default::default(),
-    //         data_len: Default::default(),
-    //         vlan_tci: Default::default(),
-    //         hash: rte_mbuf__bindgen_ty_3,
-    //         vlan_tci_outer: Default::default(),
-    //         buf_len: Default::default(),
-    //         timestamp: Default::default(),
-    //         cacheline1: MARKER,
-    //         __bindgen_anon_3: rte_mbuf__bindgen_ty_4,
-    //         pool: *mut rte_mempool,
-    //         next: *mut rte_mbuf,
-    //         __bindgen_anon_4: rte_mbuf__bindgen_ty_5,
-    //         priv_size: Default::default(),
-    //         timesync: Default::default(),
-    //         seqn: Default::default(),
-    //         __bindgen_padding_0: Default::default(),
-    //     }
-    // }
-
-    #[inline]
-    pub fn write_metadata_slot(mbuf: *mut MBuf, slot: usize, value: usize) {
-        unsafe {
-            let ptr = (mbuf.offset(1) as *mut usize).add(slot);
-            *ptr = value;
+        MBuf{
+            buf_addr: address,
+            boxed,
+            data_off: 0,
+            pkt_len: pkt_len,
+            data_len: pkt_len as u16,
+            buf_len: pkt_len as u16,
         }
-    }
-
-    #[inline]
-    pub unsafe fn metadata_as<T: Sized>(mbuf: *const MBuf, slot: usize) -> *const T {
-        (mbuf.offset(1) as *const usize).add(slot) as *const T
-    }
-
-    #[inline]
-    pub unsafe fn mut_metadata_as<T: Sized>(mbuf: *mut MBuf, slot: usize) -> *mut T {
-        (mbuf.offset(1) as *mut usize).add(slot) as *mut T
     }
 
     #[inline]
@@ -158,13 +156,14 @@ impl MBuf {
 
     #[inline]
     pub fn refcnt(&self) -> u16 {
-        unsafe { self.__bindgen_anon_1.refcnt }
+        1 as u16
+        // unsafe { self.__bindgen_anon_1.refcnt }
     }
 
     #[inline]
     pub fn reference(&mut self) {
-        unsafe {
-            self.__bindgen_anon_1.refcnt += 1;
-        }
+        // unsafe {
+        //     self.__bindgen_anon_1.refcnt += 1;
+        // }
     }
 }

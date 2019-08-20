@@ -149,23 +149,69 @@ pub struct Ipv4Header {
     dst: Ipv4Addr,
 }
 
-impl Default for Ipv4Header {
-    fn default() -> Ipv4Header {
-        Ipv4Header {
-            version_ihl: 4 << 4,
-            dscp_ecn: 0,
-            total_length: 0,
-            identification: 0,
-            flags_to_frag_offset: 0,
-            ttl: 0,
-            protocol: 0,
-            checksum: 0,
-            src: Ipv4Addr::UNSPECIFIED,
-            dst: Ipv4Addr::UNSPECIFIED,
-        }
+impl Ipv4Header {
+    // the length of the ipv4 header;
+    #[inline]
+    fn ipv4_header_len(&self) -> usize {
+        (self.ihl() << 2) as usize
     }
-}
-impl Ipv4Header{
+
+    #[inline]
+    pub fn version(&self) -> u8 {
+        // Protocol Version, should always be `4`
+        (self.version_ihl & 0xf0) >> 4
+    }
+
+    #[inline]
+    pub fn ihl(&self) -> u8 {
+        self.version_ihl & 0x0f
+    }
+
+    #[inline]
+    pub fn set_version_ihl(&mut self, version_ihl: u8) {
+        self.version_ihl = version_ihl;
+    }
+
+    #[inline]
+    pub fn total_length(&self) -> u16 {
+        u16::from_be(self.total_length)
+    }
+
+    #[inline]
+    fn set_total_length(&mut self, total_length: u16) {
+        self.total_length = u16::to_be(total_length);
+    }
+
+    #[inline]
+    pub fn identification(&self) -> u16 {
+        u16::from_be(self.identification)
+    }
+
+    #[inline]
+    pub fn set_identification(&mut self, identification: u16) {
+        self.identification = u16::to_be(identification);
+    }
+
+    #[inline]
+    pub fn ttl(&self) -> u8 {
+        self.ttl
+    }
+
+    #[inline]
+    pub fn set_ttl(&mut self, ttl: u8) {
+        self.ttl = ttl;
+    }
+
+    #[inline]
+    pub fn checksum(&self) -> u16 {
+        u16::from_be(self.checksum)
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    fn set_checksum(&mut self, checksum: u16) {
+        self.checksum = u16::to_be(checksum);
+    }
 
     #[inline]
     pub fn protocol(&self) -> ProtocolNumber {
@@ -195,6 +241,32 @@ impl Ipv4Header{
     #[inline]
     pub fn set_dst(&mut self, dst: Ipv4Addr) {
         self.dst = dst;
+    }
+
+    #[inline]
+    pub fn init(&mut self, src: Ipv4Addr, dst: Ipv4Addr, proto: ProtocolNumber, total_length: u16){
+        self.set_version_ihl(0x45);
+        self.set_total_length(total_length);
+        self.set_protocol(proto);
+        self.set_src(src);
+        self.set_dst(dst);
+    }
+}
+
+impl Default for Ipv4Header {
+    fn default() -> Ipv4Header {
+        Ipv4Header {
+            version_ihl: 4 << 4,
+            dscp_ecn: 0,
+            total_length: 0,
+            identification: 0,
+            flags_to_frag_offset: 0,
+            ttl: 0,
+            protocol: 0,
+            checksum: 0,
+            src: Ipv4Addr::UNSPECIFIED,
+            dst: Ipv4Addr::UNSPECIFIED,
+        }
     }
 }
 
