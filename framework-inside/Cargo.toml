@@ -29,6 +29,8 @@ twox-hash = ">= 1.2"
 zipf = "6.0.0"
 rand = "0.7.0"
 fxhash = "0.2.1"
+# openssl-sys = "0.9"
+# openssl = { version = "0.10", path = "../openssl-0.10.24"}
 
 # enclave can only use mbedtls for crypto.
 # mbedtls = {version="0.3.0", default-features = false, features = ["sgx"]}

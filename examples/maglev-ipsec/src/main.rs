@@ -1,7 +1,7 @@
 extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
-extern crate netbricks;
+extern crate netbricksipsec as netbricks;
 extern crate twox_hash;
 use fnv::FnvHasher;
 use netbricks::common::Result;
@@ -186,7 +186,7 @@ fn lb(packet: RawPacket) -> Result<Ipv4> {
     let decrypted_pkt: &mut [u8] = &mut [0u8; 2000];
     // let decrypted_pkt_len = aes_cbc_sha256_decrypt(payload, decrypted_pkt, false).unwrap();
     // let decrypted_pkt_len = aes_gcm128_decrypt_openssl(payload, decrypted_pkt, false).unwrap();
-    let decrypted_pkt_len = aes_gcm128_decrypt_mbedtls(payload, decrypted_pkt, false).unwrap();
+    let decrypted_pkt_len = aes_gcm128_decrypt_openssl(payload, decrypted_pkt, false).unwrap();
     
     let flow = get_flow(decrypted_pkt);
     let assigned_server = LUT.with(|lut| {
@@ -198,7 +198,7 @@ fn lb(packet: RawPacket) -> Result<Ipv4> {
 
     // let encrypted_pkt_len = aes_cbc_sha256_encrypt(&decrypted_pkt[..(decrypted_pkt_len - ESP_HEADER_LENGTH - AES_CBC_IV_LENGTH)], &(*esp_hdr), payload).unwrap();
     // let encrypted_pkt_len = aes_gcm128_encrypt_openssl(&decrypted_pkt[..(decrypted_pkt_len - ESP_HEADER_LENGTH - AES_CBC_IV_LENGTH)], &(*esp_hdr), payload).unwrap();
-    let encrypted_pkt_len = aes_gcm128_encrypt_mbedtls(&decrypted_pkt[..(decrypted_pkt_len - ESP_HEADER_LENGTH - AES_CBC_IV_LENGTH)], &(*esp_hdr), payload).unwrap();
+    let encrypted_pkt_len = aes_gcm128_encrypt_openssl(&decrypted_pkt[..(decrypted_pkt_len - ESP_HEADER_LENGTH - AES_CBC_IV_LENGTH)], &(*esp_hdr), payload).unwrap();
     
     Ok(v4)
 }
@@ -206,7 +206,15 @@ fn lb(packet: RawPacket) -> Result<Ipv4> {
 fn main() -> Result<()> {
 	let configuration = load_config()?;
     println!("{}", configuration);
+    use std::env;
+    let argvs: Vec<String> = env::args().collect();
+    let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
+    if argvs.len() == 2 {
+        pkt_num = argvs[1].parse::<u64>().unwrap();
+    }
+    println!("pkt_num: {}", pkt_num);
+
     let mut context = initialize_system(&configuration)?;
-    context.run(Arc::new(install), PKT_NUM); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

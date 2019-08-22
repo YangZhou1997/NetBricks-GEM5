@@ -2,7 +2,7 @@ extern crate colored;
 extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
-extern crate netbricks;
+extern crate netbricksipsec as netbricks;
 extern crate rand;
 extern crate aho_corasick;
 use self::dpi::*;
@@ -46,7 +46,15 @@ where
 fn main() -> Result<()> {
 	let configuration = load_config()?;
     println!("{}", configuration);
+    use std::env;
+    let argvs: Vec<String> = env::args().collect();
+    let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
+    if argvs.len() == 2 {
+        pkt_num = argvs[1].parse::<u64>().unwrap();
+    }
+    println!("pkt_num: {}", pkt_num);
+
     let mut context = initialize_system(&configuration)?;
-    context.run(Arc::new(install), PKT_NUM); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

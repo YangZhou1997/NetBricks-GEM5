@@ -23,15 +23,10 @@ about the architecture and design. Currently NetBricks requires a relatively mod
     ./build_static_binary.sh
     ```
     
-4. Run the NF instances; currently, we support 7 NFs:
+4. Run the NF instances; currently, we support 7*2 NFs:
     ```shell
     ./run_static_binary.sh acl-fw 1048576
-    # ./run_static_binary.sh dpi 1048576
-    # ./run_static_binary.sh lpm 1048576
-    # ./run_static_binary.sh macswap 1048576
-    # ./run_static_binary.sh maglev 1048576
-    # ./run_static_binary.sh monitoring 1048576
-    # ./run_static_binary.sh nat-tcp-v4 1048576
+    # dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
     ```
     You can specify the number of packet using commandline as shown above. 
 
