@@ -1,11 +1,12 @@
-extern crate netbricks;
-use netbricks::common::Result;
-use netbricks::config::load_config;
-use netbricks::interface::{PacketRx, PacketTx};
-use netbricks::operators::{Batch, ReceiveBatch};
-use netbricks::packets::{Ethernet, Packet, RawPacket};
-use netbricks::scheduler::Scheduler;
-use netbricks::scheduler::{initialize_system, PKT_NUM};
+extern crate mylib;
+
+use mylib::common::Result;
+use mylib::config::load_config;
+use mylib::interface::{PacketRx, PacketTx};
+use mylib::operators::{Batch, ReceiveBatch};
+use mylib::packets::{Ethernet, Packet, RawPacket};
+use mylib::scheduler::Scheduler;
+use mylib::scheduler::{initialize_system, PKT_NUM};
 use std::fmt::Display;
 // use std::io::stdout;
 // use std::io::Write;
@@ -45,8 +46,9 @@ fn macswap(packet: RawPacket) -> Result<Ethernet> {
 }
 
 fn main() -> Result<()> {
-    // let configuration = load_config()?;
-    // println!("{}", configuration);
+    println!("begin");
+    let configuration = load_config()?;
+    println!("{}", configuration);
     use std::env;
     let argvs: Vec<String> = env::args().collect();
     let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
@@ -54,7 +56,7 @@ fn main() -> Result<()> {
         pkt_num = argvs[1].parse::<u64>().unwrap();
     }
     println!("pkt_num: {}", pkt_num);
-    let mut context = initialize_system()?;
+    let mut context = initialize_system(&configuration)?;
     context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

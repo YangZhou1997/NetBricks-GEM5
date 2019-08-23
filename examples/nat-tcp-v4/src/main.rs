@@ -159,7 +159,14 @@ fn nat(packet: RawPacket, nat_ip: Ipv4Addr) -> Result<Tcp<Ipv4>> {
 fn main() -> Result<()> {
     let configuration = load_config()?;
     println!("{}", configuration);
+    use std::env;
+    let argvs: Vec<String> = env::args().collect();
+    let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
+    if argvs.len() == 2 {
+        pkt_num = argvs[1].parse::<u64>().unwrap();
+    }
+    println!("pkt_num: {}", pkt_num);
     let mut context = initialize_system(&configuration)?;
-    context.run(Arc::new(install), PKT_NUM); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

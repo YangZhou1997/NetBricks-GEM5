@@ -17,27 +17,30 @@ echo "Current Cargo Incremental Setting: ${CARGO_INCREMENTAL}"
 echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 
 
-for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
-do 
-	# Build enclave APP
-	pushd examples/$TASK
-	if [ "$MODE" == "debug" ]; then
-		cargo build
-	else
-		cargo build --release
-	fi
-	popd
-done
-
-# directly building non-ipsec
-# for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4
+# for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
 # do 
 # 	# Build enclave APP
 # 	pushd examples/$TASK
 # 	if [ "$MODE" == "debug" ]; then
-# 		cargo +nightly build --target=x86_64-unknown-linux-musl
+# 		cargo build
 # 	else
-# 	    cargo +nightly build --target=x86_64-unknown-linux-musl --release
+# 		cargo build --release
 # 	fi
 # 	popd
 # done
+
+# directly building non-ipsec
+for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4
+do 
+	# Build enclave APP
+	pushd examples/$TASK
+	if [ "$MODE" == "debug" ]; then
+		# cargo +nightly build --target=x86_64-unknown-linux-musl
+		cargo +stage1 build --target=x86_64-unknown-linux-musl
+		cargo +stage2 build --target=x86_64-unknown-linux-musl
+	else
+	    # cargo +nightly build --target=x86_64-unknown-linux-musl --release
+	    cargo +stage2 build --target=x86_64-unknown-linux-musl --release
+	fi
+	popd
+done

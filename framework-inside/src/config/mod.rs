@@ -132,7 +132,10 @@ static DEFAULT_TOML: &'static str = r#"
 /// line. Command line arguments will have precedence over settings
 /// from the configuration file.
 pub fn load_config() -> Result<NetBricksConfiguration, ConfigError> {
+    // println!("inside load 0");    
     let mut config = Config::new();
+    // println!("inside load 1");    
     config.merge(File::from_str(DEFAULT_TOML, FileFormat::Toml))?;
+    // println!("inside load 2");
     config.try_into()
 }

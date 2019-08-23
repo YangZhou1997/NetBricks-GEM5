@@ -8,7 +8,8 @@ use std::net::Ipv4Addr;
 use zipf::ZipfDistribution;
 use rand;
 use rand::rngs::ThreadRng;
-use std::cell::RefCell;
+// use std::cell::RefCell;
+use std::sync::RwLock;
 use std::sync::Arc;
 use std::hash::{BuildHasherDefault, BuildHasher, Hash, Hasher};
 use fxhash::FxHasher;
@@ -49,42 +50,126 @@ impl Drop for MBuf {
         }
     }
 }
-thread_local! {
-    pub static ZIPF_GEN: RefCell<ZipfDistribution> = {
+// void __cdecl srand (unsigned int seed)
+// {
+//     #ifdef _MT
+//         _getptd()->_holdrand = (unsigned long)seed;
+//     #else /* _MT */
+//         holdrand = (long)seed;
+//     #endif /* _MT */
+// }
+
+// int __cdecl rand (void)
+// {
+//    #ifdef _MT
+//     _ptiddata ptd = _getptd();
+//     return( ((ptd->_holdrand = ptd->_holdrand * 214013L + 2531011L) >> 16) &
+//     0x7fff );
+//    #else /* _MT */
+//     return(((holdrand = holdrand * 214013L + 2531011L) >> 16) & 0x7fff);
+//    #endif /* _MT */
+// }
+
+pub struct myrand {
+    pub holdrand: u64,
+}
+
+impl myrand {
+    pub fn new() -> myrand {
+        let timespec = time::get_time(); 
+        let mills = timespec.sec + timespec.nsec as i64 / 1000 / 1000;
+        myrand {
+            holdrand: mills as u64,
+        }
+    }
+    pub fn rand(&mut self) -> u64{
+        let mut hasher = FxHasher::default();
+        hasher.write_u64(self.holdrand);
+        let new_rand = hasher.finish() as u64;         
+        self.holdrand = new_rand;
+        new_rand
+    }
+}
+
+lazy_static! {
+    static ref ZIPF_GEN: Arc<RwLock<ZipfDistribution>> = {
         let n = 3 * 1024 * 1024;
         let us = ZipfDistribution::new(n, 1.1).unwrap();
-        RefCell::new(us)
+        Arc::new(RwLock::new(us))
     };
+    // static ref RAND_GEN: Arc<RwLock<myrand>> = {
+    //     let r = myrand::new();
+    //     Arc::new(RwLock::new(r))
+    // };
 }
 
-thread_local! {
-    pub static RNG: RefCell<ThreadRng> = {
-        let mut rng = rand::thread_rng();
-        RefCell::new(rng)
-    };
-}
+// thread_local! {
+//     pub static ZIPF_GEN: RefCell<ZipfDistribution> = {
+//         let n = 3 * 1024 * 1024;
+//         let us = ZipfDistribution::new(n, 1.1).unwrap();
+//         RefCell::new(us)
+//     };
+// }
 
-thread_local! {
-    pub static RNG_STR: RefCell<OsRng> = {
-        let mut r = OsRng::new().unwrap();
-        RefCell::new(r)
-    };
-}
+// thread_local! {
+//     pub static RNG: RefCell<ThreadRng> = {
+//         let mut rng = rand::thread_rng();
+//         RefCell::new(rng)
+//     };
+// }
+
+// thread_local! {
+//     pub static RNG_STR: RefCell<OsRng> = {
+//         let mut r = OsRng::new().unwrap();
+//         RefCell::new(r)
+//     };
+// }
+
+
+
+
 
 impl MBuf {
+// We borrow this code from https://answers.launchpad.net/polygraph/+faq/1478. 
+// The corresponding paper is http://ldc.usb.ve/~mcuriel/Cursos/WC/spe2003.pdf.gz
+// int popzipf(int n, long double skew) {
+//     // popZipf(skew) = wss + 1 - floor((wss + 1) ** (x ** skew))
+//     long double u = rand() / (long double) (RAND_MAX);
+//     return (int) (n + 1 - floor(pow(n + 1, pow(u, skew))));
+// }
     #[inline]
+    // fn get_zipf_index(index_range: u32, skew: f64) -> u64 {
     fn get_zipf_index() -> u64 {
-        RNG.with(|rng| {
-            let mut rng_mut = *rng.borrow_mut();
-            ZIPF_GEN.with(|us| {
-                use rand::distributions::Distribution;
-                us.borrow().sample(&mut rng_mut) as u64
-            })
-        })
+        println!("get_zipf_index1");
+        let mut rng_mut = rand::thread_rng();
+        use rand::distributions::Distribution;
+        println!("get_zipf_index2");
+        let us = ZIPF_GEN.read().unwrap();
+        println!("get_zipf_index3");
+        us.sample(&mut rng_mut) as u64
+
+        // RNG.with(|rng| {
+        //     let mut rng_mut = *rng.borrow_mut();
+        //     ZIPF_GEN.with(|us| {
+        //         use rand::distributions::Distribution;
+        //         us.borrow().sample(&mut rng_mut) as u64
+        //     })
+        // })           
+
+        // let r = RAND_GEN.write().unwrap().rand();
+        // let u: f64 = r as f64 / std::u64::MAX as f64;
+        // let n1: f64 = (index_range + 1) as f64 * 1.0;
+        // let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
+        // println!("{}", zipf_r);
+        // zipf_r
+
     }
     #[inline]
     fn get_zipf_five_tuples() -> (u32, u32, u16, u16) {
+        println!("get_zipf_five_tuples1");
+        // let index = MBuf::get_zipf_index(3 * 1024 * 1024, 1.1) as u32;
         let index = MBuf::get_zipf_index() as u32;
+
         // println!("{}", index);
  
         let mut hasher = FxHasher::default();
@@ -104,19 +189,40 @@ impl MBuf {
         Ipv4Addr::new(((ip >> 24) & 0xFF) as u8, ((ip >> 16) & 0xFF) as u8, ((ip >> 8) & 0xFF) as u8, (ip & 0xFF) as u8)
     }
 
+    // #[inline]
+    // fn get_rand_str(slice: &mut [u8]) {
+    //     let payload_len = slice.len();
+    //     let mut start = 0;
+    //     for i in 0..(payload_len/64 + 1) {
+    //         let r = RAND_GEN.write().unwrap().rand();        
+    //         slice[start..std::cmp::min(start + 8, payload_len)].copy_from_slice(&r.to_be_bytes());
+    //         start += 8;
+    //     }
+    // }
+
     // Synthetic packet generator
     #[inline]
     pub fn new(pkt_len: u32) -> MBuf {
+        println!("mbuf::new::1");
         // pkt_len is the length of the whole ethernet packet. 
         assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
         let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
-        RNG_STR.with(|r| {
-            (*r.borrow_mut()).fill_bytes(&mut temp_vec.as_mut_slice()[54..]);
-        });
+        println!("mbuf::new::2");
+        let mut r = OsRng::new().unwrap();
+        println!("mbuf::new::3");
+        r.fill_bytes(&mut temp_vec.as_mut_slice()[54..]);
+        // RNG_STR.with(|r| {
+            // (*r.borrow_mut()).fill_bytes(&mut temp_vec.as_mut_slice()[54..]);
+        // });
+        // MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
+        
+        println!("mbuf::new::4");
+        
         
         let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
         let address = &mut boxed.my_box[0] as *mut u8;
 
+        println!("mbuf::new::5");
         let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
         unsafe{
             let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
@@ -126,6 +232,7 @@ impl MBuf {
             (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
             (*tcp_hdr).init(srcport, dstport);
         }
+        println!("mbuf::new::6");
         
         // let buf_addr point to the start of the ethernet packet. 
         // let data_off be 0.
