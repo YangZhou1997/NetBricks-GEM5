@@ -5,17 +5,11 @@ use super::super::packets::ip::v4::Ipv4Header;
 use super::super::packets::ip::ProtocolNumbers;
 use super::super::packets::TcpHeader;
 use std::net::Ipv4Addr;
-use zipf::ZipfDistribution;
-use rand;
-use rand::rngs::ThreadRng;
 // use std::cell::RefCell;
 use std::sync::RwLock;
 use std::sync::Arc;
 use std::hash::{BuildHasherDefault, BuildHasher, Hash, Hasher};
 use fxhash::FxHasher;
-use rand::Rng;
-use rand::RngCore;
-use rand::rngs::OsRng;
 
 #[derive(Clone)]
 struct SuperBox { my_box: Box<[u8]> }
