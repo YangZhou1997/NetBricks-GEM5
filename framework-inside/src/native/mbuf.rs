@@ -92,42 +92,11 @@ impl myrand {
 }
 
 lazy_static! {
-    static ref ZIPF_GEN: Arc<RwLock<ZipfDistribution>> = {
-        let n = 3 * 1024 * 1024;
-        let us = ZipfDistribution::new(n, 1.1).unwrap();
-        Arc::new(RwLock::new(us))
+    static ref RAND_GEN: Arc<RwLock<myrand>> = {
+        let r = myrand::new();
+        Arc::new(RwLock::new(r))
     };
-    // static ref RAND_GEN: Arc<RwLock<myrand>> = {
-    //     let r = myrand::new();
-    //     Arc::new(RwLock::new(r))
-    // };
 }
-
-// thread_local! {
-//     pub static ZIPF_GEN: RefCell<ZipfDistribution> = {
-//         let n = 3 * 1024 * 1024;
-//         let us = ZipfDistribution::new(n, 1.1).unwrap();
-//         RefCell::new(us)
-//     };
-// }
-
-// thread_local! {
-//     pub static RNG: RefCell<ThreadRng> = {
-//         let mut rng = rand::thread_rng();
-//         RefCell::new(rng)
-//     };
-// }
-
-// thread_local! {
-//     pub static RNG_STR: RefCell<OsRng> = {
-//         let mut r = OsRng::new().unwrap();
-//         RefCell::new(r)
-//     };
-// }
-
-
-
-
 
 impl MBuf {
 // We borrow this code from https://answers.launchpad.net/polygraph/+faq/1478. 
@@ -138,38 +107,19 @@ impl MBuf {
 //     return (int) (n + 1 - floor(pow(n + 1, pow(u, skew))));
 // }
     #[inline]
-    // fn get_zipf_index(index_range: u32, skew: f64) -> u64 {
-    fn get_zipf_index() -> u64 {
-        println!("get_zipf_index1");
-        let mut rng_mut = rand::thread_rng();
-        use rand::distributions::Distribution;
-        println!("get_zipf_index2");
-        let us = ZIPF_GEN.read().unwrap();
-        println!("get_zipf_index3");
-        us.sample(&mut rng_mut) as u64
-
-        // RNG.with(|rng| {
-        //     let mut rng_mut = *rng.borrow_mut();
-        //     ZIPF_GEN.with(|us| {
-        //         use rand::distributions::Distribution;
-        //         us.borrow().sample(&mut rng_mut) as u64
-        //     })
-        // })           
-
-        // let r = RAND_GEN.write().unwrap().rand();
-        // let u: f64 = r as f64 / std::u64::MAX as f64;
-        // let n1: f64 = (index_range + 1) as f64 * 1.0;
-        // let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
-        // println!("{}", zipf_r);
-        // zipf_r
+    fn get_zipf_index(index_range: u32, skew: f64) -> u64 {
+        let r = RAND_GEN.write().unwrap().rand();
+        let u: f64 = r as f64 / std::u64::MAX as f64;
+        let n1: f64 = (index_range + 1) as f64 * 1.0;
+        let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
+        println!("{}", zipf_r);
+        zipf_r
 
     }
     #[inline]
     fn get_zipf_five_tuples() -> (u32, u32, u16, u16) {
         println!("get_zipf_five_tuples1");
-        // let index = MBuf::get_zipf_index(3 * 1024 * 1024, 1.1) as u32;
-        let index = MBuf::get_zipf_index() as u32;
-
+        let index = MBuf::get_zipf_index(3 * 1024 * 1024, 1.1) as u32;
         // println!("{}", index);
  
         let mut hasher = FxHasher::default();
@@ -189,16 +139,16 @@ impl MBuf {
         Ipv4Addr::new(((ip >> 24) & 0xFF) as u8, ((ip >> 16) & 0xFF) as u8, ((ip >> 8) & 0xFF) as u8, (ip & 0xFF) as u8)
     }
 
-    // #[inline]
-    // fn get_rand_str(slice: &mut [u8]) {
-    //     let payload_len = slice.len();
-    //     let mut start = 0;
-    //     for i in 0..(payload_len/64 + 1) {
-    //         let r = RAND_GEN.write().unwrap().rand();        
-    //         slice[start..std::cmp::min(start + 8, payload_len)].copy_from_slice(&r.to_be_bytes());
-    //         start += 8;
-    //     }
-    // }
+    #[inline]
+    fn get_rand_str(slice: &mut [u8]) {
+        let payload_len = slice.len();
+        let mut start = 0;
+        for i in 0..(payload_len/64 + 1) {
+            let r = RAND_GEN.write().unwrap().rand();        
+            slice[start..std::cmp::min(start + 8, payload_len)].copy_from_slice(&r.to_be_bytes());
+            start += 8;
+        }
+    }
 
     // Synthetic packet generator
     #[inline]
@@ -207,17 +157,9 @@ impl MBuf {
         // pkt_len is the length of the whole ethernet packet. 
         assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
         let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
-        println!("mbuf::new::2");
-        let mut r = OsRng::new().unwrap();
         println!("mbuf::new::3");
-        r.fill_bytes(&mut temp_vec.as_mut_slice()[54..]);
-        // RNG_STR.with(|r| {
-            // (*r.borrow_mut()).fill_bytes(&mut temp_vec.as_mut_slice()[54..]);
-        // });
-        // MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
-        
+        MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
         println!("mbuf::new::4");
-        
         
         let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
         let address = &mut boxed.my_box[0] as *mut u8;
