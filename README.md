@@ -4,7 +4,12 @@
 [paper](https://people.eecs.berkeley.edu/~apanda/assets/papers/osdi16.pdf) for information
 about the architecture and design. Currently NetBricks requires a relatively modern Linux version.
 
-## How to run Netbricks locally 
+
+## How to build Netbricks for GEM5 simulation
+GEM5 does not support sigaltstack() (131) and sys_getrandom() (318). 
+Thus, 
+* We remove the stack overflow check in Rust runtime by modifying its rustc compiler, and get toolchain `stage1`. 
+* We also remove all rand related crates, and implement our own random number generator using hash with seed following srand() and rand() in C.
 
 1. Enter into root and export necessary env: 
     ```shell
@@ -20,29 +25,68 @@ about the architecture and design. Currently NetBricks requires a relatively mod
 3. Build NetBricks (release or debug determined by `config.sh`):
     ```shell
     # release might require 10mins for the first time. 
-    ./build_static_binary.sh
+    ./build_gem5.sh
     ```
     
 4. Run the NF instances; currently, we support 7*2 NFs:
     ```shell
-    ./run_static_binary.sh acl-fw 1048576
+    ./run_static_binary.sh acl-fw
     # dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
     ```
-    You can specify the number of packet using commandline as shown above. 
+    <!-- You can specify the number of packet using commandline as shown above.  -->
+    Due to some unknown reason, GEM5-NFs will have "memory double free error", if we specify the number of packets in command line.  
+    Instead, you can change the packet number (const PKT_NUM) in `/users/yangzhou/SafeBricks/framework-inside/src/scheduler/mod.rs` for NFs without IPSec and `/users/yangzhou/SafeBricks/framework-inside-ipsec/src/scheduler/mod.rs` for NFs with IPSec, and then **rebuild**. 
+    Note that this error still appears in rustc 1.38.0-nightly, not only in our hacked toolchain (1.39.0-dev) (`rustc +stage1 -vV`)
 
 5. Kill the running NF instances: 
     Wait for the specified number of packet getting processed, or ctrl + c
     
 ### Note
-1. Binary files are located in `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/release` or `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/debug`. 
-2. Since we are generating packets (both header and payload) with rand and hash, the packet processing speed is pretty slow. 
+1. Binary files are located in `/users/yangzhou/SafeBricks/target/release` or `/users/yangzhou/SafeBricks/target/debug`. 
+2. 
+3. Since we are generating packets (both header and payload) with hash, the packet processing speed is pretty slow. 
     For example, 
     ```Shell
-    time ./run_static_binary.sh acl-fw 1000000
+    time ./run_gem5.sh acl-fw
     real    4m28.498s
     user    3m17.712s
     sys     1m10.796s
     ```
+
+## How to build completely static NetBricks binaries with no external dependencies
+We are using musl-gcc and musl-libc to build completely static rust binaries. 
+We use containerized musl and openssl environments provided by [rust-musl-builder](https://github.com/emk/rust-musl-builder). 
+
+1. Enter into root and export necessary env: 
+    ```shell
+    sudo su 
+    export RTE_SDK=/users/yangzhou/tools/dpdk-stable-17.08.1
+    source ~/.cargo/env
+    cd SafeBricks
+    ```
+
+2. In the `SafeBricks` folder, you can change configuration in `config.sh`.
+    *. `MODE` decides whether you will run NF in debug mode or release mode
+
+3. Build NetBricks (release or debug determined by `config.sh`):
+    ```shell
+    # release might require 10mins for the first time. 
+    ./build_musl.sh
+    ```
+    
+4. Run the NF instances; currently, we support 7*2 NFs:
+    ```shell
+    ./run_musl.sh acl-fw 1048576
+    # dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
+    ```
+    You can specify the number of packet using commandline as shown above. 
+    
+5. Kill the running NF instances: 
+    Wait for the specified number of packet getting processed, or ctrl + c
+    
+
+### Note
+1. Binary files are located in `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/release` or `/users/yangzhou/SafeBricks/target/x86_64-unknown-linux-musl/debug`. 
 
 Up and Running
 ----------------

@@ -76,9 +76,11 @@ impl myrand {
     }
     pub fn rand(&mut self) -> u64{
         let mut hasher = FxHasher::default();
-        hasher.write_u64(self.holdrand);
-        let new_rand = hasher.finish() as u64;         
-        self.holdrand = new_rand;
+        self.holdrand = self.holdrand.wrapping_mul(214013).wrapping_add(2531011);
+        let new_rand = ((self.holdrand) >> 16) & 0x7fff;
+        // hasher.write_u64(self.holdrand);
+        // let new_rand = hasher.finish() as u64;       
+        // self.holdrand = new_rand;
         new_rand
     }
 }
