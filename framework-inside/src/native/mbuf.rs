@@ -15,10 +15,9 @@ use fxhash::FxHasher;
 struct SuperBox { my_box: Box<[u8]> }
 
 impl Drop for SuperBox {
-    fn drop(&mut self) {
-        unsafe {
-            // println!("SuperBox freed");
-        }
+    fn drop (self: &'_ mut Self)
+    {
+        // println!("Dropping boxed at {:p}", self);
     }
 }
 
@@ -38,10 +37,9 @@ pub const MAX_MBUF_SIZE: u16 = 2048;
 pub const PKT_LEN: u32 = 1024;
 
 impl Drop for MBuf {
-    fn drop(&mut self) {
-        unsafe {
-            // println!("rte_mbuf freed");
-        }
+    fn drop (self: &'_ mut Self)
+    {
+        // println!("Dropping MBuf at {:p}", self);
     }
 }
 // void __cdecl srand (unsigned int seed)
@@ -106,15 +104,13 @@ impl MBuf {
         let u: f64 = r as f64 / std::u64::MAX as f64;
         let n1: f64 = (index_range + 1) as f64 * 1.0;
         let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
-        println!("{}", zipf_r);
+        // println!("{}", zipf_r);
         zipf_r
 
     }
     #[inline]
     fn get_zipf_five_tuples() -> (u32, u32, u16, u16) {
-        println!("get_zipf_five_tuples1");
         let index = MBuf::get_zipf_index(3 * 1024 * 1024, 1.1) as u32;
-        // println!("{}", index);
  
         let mut hasher = FxHasher::default();
         hasher.write_u32(index);
@@ -147,18 +143,14 @@ impl MBuf {
     // Synthetic packet generator
     #[inline]
     pub fn new(pkt_len: u32) -> MBuf {
-        println!("mbuf::new::1");
         // pkt_len is the length of the whole ethernet packet. 
         assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
         let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
-        println!("mbuf::new::3");
         MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
-        println!("mbuf::new::4");
         
         let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
         let address = &mut boxed.my_box[0] as *mut u8;
 
-        println!("mbuf::new::5");
         let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
         unsafe{
             let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
@@ -168,7 +160,6 @@ impl MBuf {
             (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
             (*tcp_hdr).init(srcport, dstport);
         }
-        println!("mbuf::new::6");
         
         // let buf_addr point to the start of the ethernet packet. 
         // let data_off be 0.

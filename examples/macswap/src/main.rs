@@ -45,8 +45,6 @@ fn macswap(packet: RawPacket) -> Result<Ethernet> {
 }
 
 fn main() -> Result<()> {
-    // let configuration = load_config()?;
-    // println!("{}", configuration);
     use std::env;
     let argvs: Vec<String> = env::args().collect();
     let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024

@@ -3,21 +3,14 @@ use super::PortStats;
 use allocators::*;
 use common::*;
 use native::mbuf::{MBuf, MAX_MBUF_SIZE};
-use native::{mbuf_alloc_bulk, mbuf_free_bulk};
 use std::fmt;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use config::{PortConfiguration, NUM_RXD, NUM_TXD};
+use config::{NUM_RXD, NUM_TXD};
 use operators::BATCH_SIZE;
 
 use std::io::stdout;
 use std::io::Write;
-
-use std::io::{BufRead, BufReader};
-use std::net::TcpListener;
-use std::thread;
-use std::sync::Mutex;
-use std::slice;
 
 use heap_ring::ring_buffer::*;
 
@@ -82,7 +75,7 @@ impl PacketRx for SimulateQueue {
 }
 
 impl SimulatePort {
-    pub fn new(port_config: &PortConfiguration) -> Result<Arc<SimulatePort>> {        
+    pub fn new() -> Result<Arc<SimulatePort>> {        
         Ok(Arc::new(SimulatePort {
             stats_rx: Arc::new(PortStats::new()),
             stats_tx: Arc::new(PortStats::new()),

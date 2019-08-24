@@ -26,9 +26,8 @@ regex = ">= 1.1"
 serde = ">= 1.0"
 serde_derive = ">= 1.0"
 twox-hash = ">= 1.2"
-zipf = "6.0.0"
-rand = "0.7.0"
 fxhash = "0.2.1"
+time = "0.1.42"
 openssl-sys = "0.9"
 openssl = { version = "0.10", path = "../openssl-0.10.24"}
 

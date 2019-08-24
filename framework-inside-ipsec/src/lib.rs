@@ -31,9 +31,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate twox_hash;
-extern crate zipf;
-extern crate rand;
 extern crate fxhash;
+extern crate time;
 
 #[cfg(test)]
 #[macro_use]

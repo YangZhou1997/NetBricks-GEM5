@@ -204,8 +204,6 @@ fn lb(packet: RawPacket) -> Result<Ipv4> {
 }
 
 fn main() -> Result<()> {
-	let configuration = load_config()?;
-    println!("{}", configuration);
     use std::env;
     let argvs: Vec<String> = env::args().collect();
     let mut pkt_num = PKT_NUM; // 2 * 1024 * 1024
@@ -214,7 +212,7 @@ fn main() -> Result<()> {
     }
     println!("pkt_num: {}", pkt_num);
 
-    let mut context = initialize_system(&configuration)?;
+    let mut context = initialize_system()?;
     context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
     Ok(())
 }

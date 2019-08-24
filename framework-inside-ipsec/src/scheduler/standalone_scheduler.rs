@@ -1,9 +1,8 @@
 use super::{Executable, Scheduler};
 use common::*;
 use std::default::Default;
-use std::sync::mpsc::{sync_channel, Receiver, RecvError, SyncSender};
+use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
-use std::thread;
 use utils;
 use std::io::stdout;
 use std::io::Write;

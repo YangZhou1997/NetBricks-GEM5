@@ -110,12 +110,16 @@ impl RingBuffer {
             vec: SuperVec{ my_vec: (address as *mut usize).offset(4) as (*mut (*mut MBuf)) },
         };
         // Write inital 32 mbufs. 
-        let mut mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
-        unsafe{mbufs_vec.set_len(32);}
-        let mut mbufs: &mut [*mut MBuf] = mbufs_vec.as_mut_slice();
-        RingBuffer::gen_mbuf_batch(mbufs, 32);
-        rb.write_at_tail(mbufs);
-        drop(mbufs);
+        // this will cause the double free error in x86_64-unknown-linux-gnu target. 
+        // But is find in x86_64-unknown-linux-musl target, 
+        // Weird...
+        
+        // let mut mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
+        // unsafe{mbufs_vec.set_len(32);}
+        // let mut mbufs: &mut [*mut MBuf] = mbufs_vec.as_mut_slice();
+        // RingBuffer::gen_mbuf_batch(mbufs, 32);
+        // rb.write_at_tail(mbufs);
+        // drop(mbufs);
 
         Ok(rb)
     }
@@ -180,6 +184,13 @@ impl RingBuffer {
     /// Read from the buffer, incrementing the read head. Returns bytes read.
     #[inline]
     pub fn read_from_head(&self, mbufs: &mut [*mut MBuf]) -> usize {
+
+        let mut new_mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
+        unsafe{new_mbufs_vec.set_len(32);}
+        let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
+        RingBuffer::gen_mbuf_batch(new_mbufs, 32);
+        self.write_at_tail(new_mbufs);
+
 		let ring_size = self.size();
         let available = self.tail().wrapping_sub(self.head());
         let to_read = min(mbufs.len(), available);
@@ -187,13 +198,6 @@ impl RingBuffer {
         let reads = self.wrapped_read(offset, &mut mbufs[..to_read]);
         compiler_fence(Ordering::Release);
         self.wrapping_add_head(reads);
-
-        let mut new_mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
-        unsafe{new_mbufs_vec.set_len(32);}
-        let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
-        RingBuffer::gen_mbuf_batch(new_mbufs, 32);
-        self.write_at_tail(new_mbufs);
-        drop(new_mbufs);
 
         reads
     }
@@ -214,8 +218,11 @@ impl RingBuffer {
     #[inline]
     pub fn gen_mbuf_batch(mbufs: &mut [*mut MBuf], batch_size: usize) {
         for i in 0..batch_size {
+            // println!("gen_mbuf_batch {}", i);
             let mut mbuf_instance = MBuf::new(PKT_LEN - 4);
             mbufs[i] = Box::leak(Box::new(mbuf_instance)) as *mut MBuf;
+            // println!("Generating MBuf at {:p}", unsafe{&*(mbufs[i])});
+            // println!("gen_mbuf_batch after {}", i);
         }
     }
     // How to drop a leaked reference: 
@@ -225,8 +232,12 @@ impl RingBuffer {
         unsafe{
             use std::ptr;
             for i in 0..batch_size {
+                // println!("free_mbuf_batch {}", i);
                 let temp_box = Box::from_raw(mbufs[i]);
+                // let temp_mbuf = unsafe{*temp_box};
+                // println!("pktlen: {}", temp_mbuf.pkt_len);
                 drop(temp_box);
+                // println!("free_mbuf_batch after {}", i);
             }
         }
     }
