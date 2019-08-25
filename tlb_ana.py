@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # print(ro, rw, re, maxmem)
     for i in range(6):
         heapstack = maxmem[i] - ro[i] - rw[i] - re[i]
-        sys.stdout.write("%.02lf & %.02lf & %.02lf & %.02lf & " % (ro[i] / (1024 * 1024.0), rw[i] / (1024 * 1024.0), re[i] / (1024 * 1024.0), heapstack / (1024 * 1024.0)))
+        sys.stdout.write("%.02lf & %.02lf & %.02lf & %.02lf & %.02lf & " % (ro[i] / (1024 * 1024.0), rw[i] / (1024 * 1024.0), re[i] / (1024 * 1024.0), heapstack / (1024 * 1024.0), maxmem[i] / (1024 * 1024.0)))
         for pgset in pgszs:
             mem_ls = [ro[i], rw[i], re[i], heapstack]
             sys.stdout.write("%d & " % (get_tlb_num(mem_ls, pgset)))
