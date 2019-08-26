@@ -184,22 +184,26 @@ impl RingBuffer {
     /// Read from the buffer, incrementing the read head. Returns bytes read.
     #[inline]
     pub fn read_from_head(&self, mbufs: &mut [*mut MBuf]) -> usize {
+        RingBuffer::gen_mbuf_batch(mbufs, 32);
+        32
 
-        let mut new_mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
-        unsafe{new_mbufs_vec.set_len(32);}
-        let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
-        RingBuffer::gen_mbuf_batch(new_mbufs, 32);
-        self.write_at_tail(new_mbufs);
+        // Due to some misterous reason, the following code will cause "double memory free error"; 
+        
+        // let mut new_mbufs_vec = Vec::<*mut MBuf>::with_capacity(32);
+        // unsafe{new_mbufs_vec.set_len(32);}
+        // let mut new_mbufs: &mut [*mut MBuf] = new_mbufs_vec.as_mut_slice();
+        // RingBuffer::gen_mbuf_batch(new_mbufs, 32);
+        // self.write_at_tail(new_mbufs);
 
-		let ring_size = self.size();
-        let available = self.tail().wrapping_sub(self.head());
-        let to_read = min(mbufs.len(), available);
-        let offset = self.head() & self.mask();
-        let reads = self.wrapped_read(offset, &mut mbufs[..to_read]);
-        compiler_fence(Ordering::Release);
-        self.wrapping_add_head(reads);
+		// let ring_size = self.size();
+        // let available = self.tail().wrapping_sub(self.head());
+        // let to_read = min(mbufs.len(), available);
+        // let offset = self.head() & self.mask();
+        // let reads = self.wrapped_read(offset, &mut mbufs[..to_read]);
+        // compiler_fence(Ordering::Release);
+        // self.wrapping_add_head(reads);
 
-        reads
+        // reads
     }
 
     /// Write data at the end of the buffer. The amount of data written might be smaller than input.

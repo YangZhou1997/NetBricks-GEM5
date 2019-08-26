@@ -22,9 +22,11 @@ if [ $# -ge 1 ]; then
 fi
 echo $TASK
 
+cd target/$MODE/
 if [ $# -eq 2 ]; then
-    RUST_BACKTRACE=1 target/$MODE/$TASK $2
+    RUST_BACKTRACE=1 ./$TASK $2
 else
-    RUST_BACKTRACE=1 target/$MODE/$TASK
+    RUST_BACKTRACE=1 ./$TASK
 fi
+cd -
 
