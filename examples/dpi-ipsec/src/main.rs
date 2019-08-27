@@ -2,7 +2,7 @@ extern crate colored;
 extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
-extern crate netbricksipsec as netbricks;
+extern crate netbricks;
 extern crate rand;
 extern crate aho_corasick;
 use self::dpi::*;

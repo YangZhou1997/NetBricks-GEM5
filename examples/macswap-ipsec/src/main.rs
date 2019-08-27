@@ -1,4 +1,4 @@
-extern crate netbricksipsec as netbricks;
+extern crate netbricks;
 use netbricks::common::Result;
 use netbricks::config::load_config;
 use netbricks::interface::{PacketRx, PacketTx};

@@ -1,7 +1,7 @@
 extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
-extern crate netbricksipsec as netbricks;
+extern crate netbricks;
 extern crate twox_hash;
 use fnv::FnvHasher;
 use netbricks::common::Result;

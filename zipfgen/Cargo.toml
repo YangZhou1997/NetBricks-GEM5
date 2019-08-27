@@ -1,0 +1,7 @@
+[package]
+name = "zipfgen"
+version = "0.1.0"
+authors = ["Yang Zhou"]
+license = "MPL-2.0"
+
+[dependencies]

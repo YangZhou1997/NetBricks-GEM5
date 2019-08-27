@@ -20,7 +20,7 @@ Thus,
     ```
 
 2. In the `SafeBricks` folder, you can change configuration in `config.sh`.
-    *. `MODE` decides whether you will run NF in debug mode or release mode
+    * `MODE` decides whether you will run NF in debug mode or release mode
 
 3. Build NetBricks (release or debug determined by `config.sh`):
     ```shell
@@ -30,13 +30,16 @@ Thus,
     
 4. Run the NF instances; currently, we support 7*2 NFs:
     ```shell
-    ./run_static_binary.sh acl-fw
+    ./run_static_binary.sh acl-fw 1048576
     # dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
     ```
-    <!-- You can specify the number of packet using commandline as shown above.  -->
-    Due to some unknown reason, GEM5-NFs will have "memory double free error", if we specify the number of packets in command line.  
+    You can specify the number of packet using commandline as shown above. 
+
+    * **Note1:** Please use 2097152 (2M) packets for monitoring, and 1048576 (1M) packets for the others. 
+    * **Note2:** NFs with IPSec might be too slow to run in GEM5; currently, we just test the NFs without IPSec. 
+    <!-- Due to some unknown reason, GEM5-NFs will have "memory double free error", if we specify the number of packets in command line.  
     Instead, you can change the packet number (const PKT_NUM) in `/users/yangzhou/SafeBricks/framework-inside/src/scheduler/mod.rs` for NFs without IPSec and `/users/yangzhou/SafeBricks/framework-inside-ipsec/src/scheduler/mod.rs` for NFs with IPSec, and then **rebuild**. 
-    Note that this error still appears in rustc 1.38.0-nightly, not only in our hacked toolchain (1.39.0-dev) (`rustc +stage1 -vV`)
+    Note that this error still appears in rustc 1.38.0-nightly, not only in our hacked toolchain (1.39.0-dev) (`rustc +stage1 -vV`) -->
 
 5. Kill the running NF instances: 
     Wait for the specified number of packet getting processed, or ctrl + c
@@ -47,7 +50,7 @@ Thus,
 3. Since we are generating packets (both header and payload) with hash, the packet processing speed is pretty slow. 
     For example, 
     ```Shell
-    time ./run_gem5.sh acl-fw
+    time ./run_gem5.sh acl-fw 2097152
     real    4m28.498s
     user    3m17.712s
     sys     1m10.796s
@@ -76,7 +79,7 @@ We use containerized musl and openssl environments provided by [rust-musl-builde
     
 4. Run the NF instances; currently, we support 7*2 NFs:
     ```shell
-    ./run_musl.sh acl-fw 1048576
+    ./run_musl.sh acl-fw 2097152
     # dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec
     ```
     You can specify the number of packet using commandline as shown above. 

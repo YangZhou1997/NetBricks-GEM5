@@ -115,11 +115,12 @@ if __name__ == '__main__':
     now = datetime.datetime.now()
     limitmem_res = open("./examples/memory-profiling/cgroup-log/memusage.txt_" + now.isoformat(), 'w')
     tasks = list()
-    tasks.extend(["acl-fw", "dpi", "lpm", "maglev", "nat-tcp-v4", "monitoring"])
-    tasks.extend(["acl-fw-ipsec", "dpi-ipsec", "lpm-ipsec", "maglev-ipsec", "nat-tcp-v4-ipsec", "monitoring-ipsec"])
+    tasks.extend(["monitoring"])
+    # tasks.extend(["acl-fw", "dpi", "lpm", "maglev", "nat-tcp-v4", "monitoring"])
+    # tasks.extend(["acl-fw-ipsec", "dpi-ipsec", "lpm-ipsec", "maglev-ipsec", "nat-tcp-v4-ipsec", "monitoring-ipsec"])
     
-    pktnums = [2*1024*1024, 4*1024*1024, 8*1024*1024, 16*1024*1024, 32*1024*1024]
-    # pktnums = [2*1024*1024]
+    # pktnums = [1*1024*1024]
+    pktnums = [2*1024*1024]
 
 
     for task in tasks:
@@ -133,7 +134,7 @@ if __name__ == '__main__':
         	total_mem_usages = map(lambda x: x / (1024 * 1024.0), mem_usages)
         	max_total_mem_usages = max_mem_usage  / (1024 * 1024.0)
         	
-        	print total_mem_usages
+        	# print total_mem_usages
         	print colored("[Cgroup direct]: peak_total_mem_usage: " + str(max_total_mem_usages), 'green')
 
         	limitmem_res.write(task + "," + str(pktnum) + ",")

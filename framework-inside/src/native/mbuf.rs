@@ -4,12 +4,14 @@ use super::super::packets::{EthernetHeader, MacAddr};
 use super::super::packets::ip::v4::Ipv4Header;
 use super::super::packets::ip::ProtocolNumbers;
 use super::super::packets::TcpHeader;
+use super::super::utils::ipsec::*;
 use std::net::Ipv4Addr;
 // use std::cell::RefCell;
 use std::sync::RwLock;
 use std::sync::Arc;
 use std::hash::{BuildHasherDefault, BuildHasher, Hash, Hasher};
 use fxhash::FxHasher;
+use zipfgen::ZipfDistribution;
 
 #[derive(Clone)]
 struct SuperBox { my_box: Box<[u8]> }
@@ -76,11 +78,12 @@ impl myrand {
     }
     pub fn rand(&mut self) -> u64{
         let mut hasher = FxHasher::default();
-        self.holdrand = self.holdrand.wrapping_mul(214013).wrapping_add(2531011);
-        let new_rand = ((self.holdrand) >> 16) & 0x7fff;
-        // hasher.write_u64(self.holdrand);
-        // let new_rand = hasher.finish() as u64;       
-        // self.holdrand = new_rand;
+        // self.holdrand = self.holdrand.wrapping_mul(214013).wrapping_add(2531011);
+        // let new_rand = ((self.holdrand) >> 16) & 0x7fff;
+        
+        hasher.write_u64(self.holdrand);
+        let new_rand = hasher.finish() as u64;       
+        self.holdrand = new_rand;
         new_rand
     }
 }
@@ -89,6 +92,10 @@ lazy_static! {
     static ref RAND_GEN: Arc<RwLock<myrand>> = {
         let r = myrand::new();
         Arc::new(RwLock::new(r))
+    };
+    static ref ZIPF_GEN: Arc<ZipfDistribution> = {
+        let us = ZipfDistribution::new(3 * 1024 * 1024, 1.1).unwrap();
+        Arc::new(us)
     };
 }
 
@@ -101,18 +108,31 @@ impl MBuf {
 //     return (int) (n + 1 - floor(pow(n + 1, pow(u, skew))));
 // }
     #[inline]
-    fn get_zipf_index(index_range: u32, skew: f64) -> u64 {
-        let r = RAND_GEN.write().unwrap().rand();
-        let u: f64 = r as f64 / std::u64::MAX as f64;
-        let n1: f64 = (index_range + 1) as f64 * 1.0;
-        let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
-        // println!("{}", zipf_r);
-        zipf_r
+    fn get_zipf_index() -> usize {
+        // let r = RAND_GEN.write().unwrap().rand();
+        // let u: f64 = r as f64 / std::u64::MAX as f64;
+        // let n1: f64 = (index_range + 1) as f64 * 1.0;
+        // let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
+        // // println!("{}", zipf_r);
+        // zipf_r
 
+        if cfg!(feature = "uniform")
+        {
+            // println!("uniform distribution");
+            let r = RAND_GEN.write().unwrap().rand();
+            r as usize
+        }
+        else
+        {
+            // println!("zipf distribution");
+            let r = RAND_GEN.write().unwrap().rand();
+            let zipf_r = ZIPF_GEN.next(r);
+            zipf_r
+        }
     }
     #[inline]
     fn get_zipf_five_tuples() -> (u32, u32, u16, u16) {
-        let index = MBuf::get_zipf_index(3 * 1024 * 1024, 1.1) as u32;
+        let index = MBuf::get_zipf_index() as u32;
  
         let mut hasher = FxHasher::default();
         hasher.write_u32(index);
@@ -147,31 +167,82 @@ impl MBuf {
     pub fn new(pkt_len: u32) -> MBuf {
         // pkt_len is the length of the whole ethernet packet. 
         assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
-        let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
-        MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
-        
-        let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
-        let address = &mut boxed.my_box[0] as *mut u8;
 
-        let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
-        unsafe{
-            let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
-            let ip_hdr: *mut Ipv4Header = address.offset(14) as *mut Ipv4Header;
-            let tcp_hdr: *mut TcpHeader = address.offset(14 + 20) as *mut TcpHeader;
-            (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
-            (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
-            (*tcp_hdr).init(srcport, dstport);
+        if cfg!(feature = "ipsec") 
+        {
+            // println!("ipsec");
+            // we do not need ethernet header for tunnelled packets.
+            let mut temp_vec: Vec<u8> = vec![0; (pkt_len - 14) as usize];
+            MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[40..]);
+            
+            let address = &mut (temp_vec.as_mut_slice()[0]) as *mut u8;
+            let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
+            unsafe{
+                let ip_hdr: *mut Ipv4Header = address.offset(0) as *mut Ipv4Header;
+                let tcp_hdr: *mut TcpHeader = address.offset(20) as *mut TcpHeader;
+                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
+                (*tcp_hdr).init(srcport, dstport);
+            }
+            
+            let new_pkt_len = pkt_len as usize + 20 + ESP_HEADER_LENGTH + AES_GCM_IV_LENGTH + ICV_LEN_GCM128;
+            let mut temp_vec_ipsec: Vec<u8> = vec![0; new_pkt_len as usize];
+            let mut boxed_ipsec: SuperBox = SuperBox{ my_box: temp_vec_ipsec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
+            let address_ipsec = &mut boxed_ipsec.my_box[0] as *mut u8;
+
+            let original_pkt = unsafe { std::slice::from_raw_parts(address, (pkt_len - 14) as usize) };
+            let encrypted_pkt = unsafe { std::slice::from_raw_parts_mut(address_ipsec, new_pkt_len as usize) };
+            let esp_hdr_raw: Vec<u8> = vec![0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8];
+
+            let encrypted_pkt_len = aes_gcm128_encrypt_openssl(original_pkt, esp_hdr_raw.as_slice(), &mut encrypted_pkt[34..]).unwrap();
+
+            unsafe{
+                let eth_hdr: *mut EthernetHeader = address_ipsec.offset(0) as *mut EthernetHeader;
+                let ip_hdr: *mut Ipv4Header = address_ipsec.offset(14) as *mut Ipv4Header;
+                (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
+                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (new_pkt_len - 14) as u16);
+            }
+            
+            
+            // let buf_addr point to the start of the ethernet packet. 
+            // let data_off be 0.
+            MBuf{
+                buf_addr: address_ipsec,
+                boxed: boxed_ipsec,
+                data_off: 0,
+                pkt_len: new_pkt_len as u32,
+                data_len: new_pkt_len as u16,
+                buf_len: new_pkt_len as u16,
+            }
         }
-        
-        // let buf_addr point to the start of the ethernet packet. 
-        // let data_off be 0.
-        MBuf{
-            buf_addr: address,
-            boxed,
-            data_off: 0,
-            pkt_len: pkt_len,
-            data_len: pkt_len as u16,
-            buf_len: pkt_len as u16,
+        else
+        {
+            // println!("non-ipsec");
+            let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
+            MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
+            
+            let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
+            let address = &mut boxed.my_box[0] as *mut u8;
+
+            let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
+            unsafe{
+                let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
+                let ip_hdr: *mut Ipv4Header = address.offset(14) as *mut Ipv4Header;
+                let tcp_hdr: *mut TcpHeader = address.offset(14 + 20) as *mut TcpHeader;
+                (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
+                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
+                (*tcp_hdr).init(srcport, dstport);
+            }
+            
+            // let buf_addr point to the start of the ethernet packet. 
+            // let data_off be 0.
+            MBuf{
+                buf_addr: address,
+                boxed,
+                data_off: 0,
+                pkt_len: pkt_len,
+                data_len: pkt_len as u16,
+                buf_len: pkt_len as u16,
+            }
         }
     }
 
