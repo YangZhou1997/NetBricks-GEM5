@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::hash::BuildHasherDefault;
 use std::net::Ipv4Addr;
-use rand::distributions::Uniform;
-use rand::{thread_rng, Rng};
 use std::cell::RefCell;
+use fxhash::FxHasher;
+use std::hash::Hasher;
 
 type FnvHash = BuildHasherDefault<FnvHasher>;
 
@@ -102,18 +102,42 @@ impl IPLookup {
         }
     }
 }
+pub struct myrand {
+    pub holdrand: u64,
+}
+
+impl myrand {
+    pub fn new() -> myrand {
+        let timespec = time::get_time(); 
+        let mills = timespec.sec + timespec.nsec as i64 / 1000 / 1000;
+        myrand {
+            holdrand: mills as u64,
+        }
+    }
+    pub fn rand(&mut self) -> u64{
+        let mut hasher = FxHasher::default();
+        // self.holdrand = self.holdrand.wrapping_mul(214013).wrapping_add(2531011);
+        // let new_rand = ((self.holdrand) >> 16) & 0x7fff;
+        
+        hasher.write_u64(self.holdrand);
+        let new_rand = hasher.finish() as u64;       
+        self.holdrand = new_rand;
+        new_rand
+    }
+}
 
 thread_local! {
     pub static LOOKUP_TABLE: RefCell<IPLookup> = {
-        let mut rng = thread_rng();
         let mut lpm_table = IPLookup::new();
+        let mut r = myrand::new();
 
         for _ in 0..16000 {
-            let a: u8 = rng.sample(Uniform::new_inclusive(0, 255));
-            let b: u8 = rng.sample(Uniform::new_inclusive(0, 255));
-            let c: u8 = rng.sample(Uniform::new_inclusive(0, 255));
-            let d: u8 = rng.sample(Uniform::new_inclusive(0, 255));
-            let port: u16 = rng.sample(Uniform::new_inclusive(0, GATE_NUM - 1));
+            let a: u8 = (r.rand() & 0xFF) as u8;
+            let b: u8 = (r.rand() & 0xFF) as u8;
+            let c: u8 = (r.rand() & 0xFF) as u8;
+            let d: u8 = (r.rand() & 0xFF) as u8;
+            // GATE_NUM = 256;
+            let port: u16 = (r.rand() & 0xFF) as u16;
             lpm_table.insert_ipv4(Ipv4Addr::new(a, b, c, d), 32, port);
         }
 

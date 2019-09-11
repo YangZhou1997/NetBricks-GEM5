@@ -3,7 +3,8 @@ extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
 extern crate netbricks;
-extern crate rand;
+extern crate fxhash;
+extern crate time;
 use self::lpm::*;
 use netbricks::common::Result;
 use netbricks::config::load_config;
@@ -16,6 +17,7 @@ use std::sync::Arc;
 // use colored::*;
 // use std::net::Ipv4Addr;
 mod lpm;
+
 
 fn install<T, S>(ports: Vec<T>, sched: &mut S)
 where

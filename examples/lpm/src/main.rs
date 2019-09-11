@@ -3,7 +3,8 @@ extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
 extern crate netbricks;
-extern crate rand;
+extern crate time;
+extern crate fxhash;
 use self::lpm::*;
 use netbricks::common::Result;
 use netbricks::config::load_config;
