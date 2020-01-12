@@ -27,7 +27,7 @@ serde = ">= 1.0"
 serde_derive = ">= 1.0"
 twox-hash = ">= 1.2"
 fxhash = "0.2.1"
-time = "0.1.42"
+time = { version = "0.1.42" }
 zipfgen = { version = "0.1.0", path = "../zipfgen" }
 openssl-sys = "0.9"
 openssl = { version = "0.10", path = "../openssl-0.10.24"}
