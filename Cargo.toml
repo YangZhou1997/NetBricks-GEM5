@@ -1,22 +1,7 @@
 [workspace]
 members = [
     "framework-inside",
-    "framework-outside",
-    # "examples/ttl-chain",
-    # "examples/collect-metrics",
-    # "examples/echo-reply",
-    # "examples/embedded-scheduler",
-    # "examples/embedded-scheduler-dependency",
-    # "examples/ipv4or6",
-    # "examples/mtu-too-big",
-    # "examples/sctp",
-    # 
-    # does not work now
-    # "examples/op-errors",
-    # "examples/signals",
-    # "examples/tcp-reconstruction",
-    # 
-    # for our experiments
+    #
     "examples/macswap",
    	"examples/acl-fw",
    	"examples/lpm",
@@ -32,10 +17,6 @@ members = [
     "examples/dpi-ipsec",
     "examples/nat-tcp-v4-ipsec",
     "examples/monitoring-ipsec",
-    # for sgx 
-    "sgx-runner",
-    "dpdkIO",
-    "sharedring",
 ]
 exclude = ["rust-sgx", "mbedtls-0.3.0"]
 
