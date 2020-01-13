@@ -1,0 +1,17 @@
+[package]
+name = "spmc"
+version = "0.1.0"
+authors = ["Yang Zhou <yangzhou@g.harvard>"]
+description = "SPMC example"
+license = "..."
+repository = "..."
+readme = "..."
+keywords = ["netbricks", "network-functions", "nfs", "packet-processing"]
+categories = ["network-functions", "framework"]
+
+[dependencies]
+spmc = "0.3.0"
+
+[features]
+default = []
+print = []

@@ -12,6 +12,8 @@ use std::sync::Arc;
 use std::hash::{BuildHasherDefault, BuildHasher, Hash, Hasher};
 use fxhash::FxHasher;
 use zipfgen::ZipfDistribution;
+use std::fs::File;
+use std::io::Write;
 
 #[derive(Clone)]
 struct SuperBox { my_box: Box<[u8]> }
@@ -97,6 +99,17 @@ lazy_static! {
         let us = ZipfDistribution::new(3 * 1024 * 1024, 1.1).unwrap();
         Arc::new(us)
     };
+    #[cfg(feature = "dumptrace")]
+    static ref FILE_HANDLER: Arc<RwLock<File>> = {
+        let file = File::create("/users/yangzhou/NetBricks-GEM5/examples/dpi/trace.txt").unwrap();
+        Arc::new(RwLock::new(file))
+    };
+    #[cfg(feature = "dumptrace")]
+    static ref FILE_CNT: Arc<RwLock<usize>> = {
+        let cnt = 0;
+        Arc::new(RwLock::new(cnt))
+    };
+
 }
 
 impl MBuf {
@@ -231,6 +244,17 @@ impl MBuf {
                 (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
                 (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
                 (*tcp_hdr).init(srcport, dstport);
+            }
+            if cfg!(feature = "dumptrace"){
+                // let mut file = FILE_HANDLER.write().unwrap();
+                let mut cnt = FILE_CNT.write().unwrap();
+                let file_name = format!("/users/yangzhou/NetBricks-GEM5/examples/dpi/trace_{}.txt", cnt);
+                *cnt += 1;
+
+                let mut file = File::create(file_name).unwrap();
+                let slice = unsafe { std::slice::from_raw_parts(address, pkt_len as usize) };
+                file.write_all(slice).unwrap();
+                println!("dumptrace");
             }
             
             // let buf_addr point to the start of the ethernet packet. 

@@ -17,6 +17,8 @@ members = [
     "examples/dpi-ipsec",
     "examples/nat-tcp-v4-ipsec",
     "examples/monitoring-ipsec",
+    # 
+    "examples/spmc",
 ]
 exclude = ["rust-sgx", "mbedtls-0.3.0"]
 
