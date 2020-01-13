@@ -78,7 +78,7 @@ Thus,
     * **Note1:** Please use 2097152 (2M) packets for monitoring, and 1048576 (1M) packets for the others. 
     * **Note2:** NFs with IPSec might be too slow to run in GEM5; currently, we just test the NFs without IPSec. 
     <!-- Due to some unknown reason, GEM5-NFs will have "memory double free error", if we specify the number of packets in command line.  
-    Instead, you can change the packet number (const PKT_NUM) in `$HOME/NetBricks-GEM5/framework-inside/src/scheduler/mod.rs` for NFs without IPSec and `$HOME/NetBricks-GEM5/framework-inside-ipsec/src/scheduler/mod.rs` for NFs with IPSec, and then **rebuild**. 
+    Instead, you can change the packet number (const PKT_NUM) in `$HOME/NetBricks-GEM5/framework/src/scheduler/mod.rs` for NFs without IPSec and `$HOME/NetBricks-GEM5/framework-ipsec/src/scheduler/mod.rs` for NFs with IPSec, and then **rebuild**. 
     Note that this error still appears in rustc 1.38.0-nightly, not only in our hacked toolchain (1.39.0-dev) (`rustc +stage1 -vV`) -->
 
 5. Kill the running NF instances: 

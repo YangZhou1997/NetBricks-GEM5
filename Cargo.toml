@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "framework-inside",
+    "framework",
     #
     "examples/macswap",
    	"examples/acl-fw",
