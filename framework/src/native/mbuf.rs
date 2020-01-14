@@ -5,6 +5,7 @@ use super::super::packets::ip::v4::Ipv4Header;
 use super::super::packets::ip::ProtocolNumbers;
 use super::super::packets::TcpHeader;
 use super::super::utils::ipsec::*;
+use super::super::scheduler::PKT_NUM;
 use std::net::Ipv4Addr;
 // use std::cell::RefCell;
 use std::sync::RwLock;
@@ -17,19 +18,8 @@ use std::io::Write;
 use std::io::Read;
 
 #[derive(Clone)]
-struct SuperBox { my_box: Box<[u8]> }
-
-impl Drop for SuperBox {
-    fn drop (self: &'_ mut Self)
-    {
-        // println!("Dropping boxed at {:p}", self);
-    }
-}
-
-#[derive(Clone)]
 pub struct rte_mbuf {
     pub buf_addr: *mut u8,
-    boxed: SuperBox, 
     pub data_off: u16, 
     pub pkt_len: u32,
     pub data_len: u16,
@@ -90,9 +80,46 @@ impl myrand {
         new_rand
     }
 }
-pub struct pktgen {
-    pub 
+// Simulate 
+pub struct rawpkt {
+    pub len: u16,
+    pub raw: Box<[u8]>, // Box<[u8]> = &[u8]
 }
+
+pub struct pktgen {
+    pub pkts: Box<[rawpkt]>,
+    pub cur_index: usize,
+}
+impl pktgen {
+    pub fn new(filename: &str) -> pktgen {
+        let mut file = File::open(filename).unwrap();
+        let mut pkts_temp: Vec<rawpkt> = Vec::new();
+        for i in 0..PKT_NUM {
+            let mut buf = [0u8; 2];
+            file.read(&mut buf).unwrap();
+            let pkt_len: u16 = as_u16_le(&buf);
+            // println!("{}", pkt_len);
+
+            let mut temp_vec = vec![0u8; pkt_len as usize];
+            file.read_exact(&mut temp_vec).unwrap();
+            
+            pkts_temp.push(rawpkt {
+                len: pkt_len,
+                raw: temp_vec.into_boxed_slice(),
+            })
+        }
+        pktgen {
+            pkts: pkts_temp.into_boxed_slice(),
+            cur_index: 0 as usize,
+        }
+    }
+    pub fn next(&mut self) -> (*mut u8, u16) {
+        let cur = self.cur_index;
+        self.cur_index += 1;
+        (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
+    }
+}
+
 lazy_static! {
     static ref RAND_GEN: Arc<RwLock<myrand>> = {
         let r = myrand::new();
@@ -102,9 +129,8 @@ lazy_static! {
         let us = ZipfDistribution::new(3 * 1024 * 1024, 1.1).unwrap();
         Arc::new(us)
     };
-    static ref FILE_GEM5: Arc<RwLock<File>> = {
-        let file = File::open("/users/yangzhou/ictf2010.dat").unwrap();
-        Arc::new(RwLock::new(file))
+    static ref PKTGEN: Arc<RwLock<pktgen>> = {
+        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010.dat")))
     };
     
 }
@@ -194,88 +220,28 @@ impl MBuf {
         // pkt_len is the length of the whole ethernet packet. 
         assert!(pkt_len <= (MAX_MBUF_SIZE as u32));
 
-        if cfg!(feature = "ipsec") 
-        {
-            // println!("ipsec");
-            // we do not need ethernet header for tunnelled packets.
-            let mut temp_vec: Vec<u8> = vec![0; (pkt_len - 14) as usize];
-            MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[40..]);
-            
-            let address = &mut (temp_vec.as_mut_slice()[0]) as *mut u8;
-            let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
-            unsafe{
-                let ip_hdr: *mut Ipv4Header = address.offset(0) as *mut Ipv4Header;
-                let tcp_hdr: *mut TcpHeader = address.offset(20) as *mut TcpHeader;
-                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
-                (*tcp_hdr).init(srcport, dstport);
-            }
-            
-            let new_pkt_len = pkt_len as usize + 20 + ESP_HEADER_LENGTH + AES_GCM_IV_LENGTH + ICV_LEN_GCM128;
-            let mut temp_vec_ipsec: Vec<u8> = vec![0; new_pkt_len as usize];
-            let mut boxed_ipsec: SuperBox = SuperBox{ my_box: temp_vec_ipsec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
-            let address_ipsec = &mut boxed_ipsec.my_box[0] as *mut u8;
+        let (address, pkt_len) = PKTGEN.write().unwrap().next();
 
-            let original_pkt = unsafe { std::slice::from_raw_parts(address, (pkt_len - 14) as usize) };
-            let encrypted_pkt = unsafe { std::slice::from_raw_parts_mut(address_ipsec, new_pkt_len as usize) };
-            let esp_hdr_raw: Vec<u8> = vec![0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8];
+        if cfg!(feature = "dumptrace"){
+            let mut cnt = FILE_CNT.write().unwrap();
+            let file_name = format!("/users/yangzhou/NetBricks-GEM5/examples/dumptrace/trace/trace_{}.txt", cnt);
+            *cnt += 1;
+            *cnt %= 32;
 
-            let encrypted_pkt_len = aes_gcm128_encrypt_openssl(original_pkt, esp_hdr_raw.as_slice(), &mut encrypted_pkt[34..]).unwrap();
-
-            unsafe{
-                let eth_hdr: *mut EthernetHeader = address_ipsec.offset(0) as *mut EthernetHeader;
-                let ip_hdr: *mut Ipv4Header = address_ipsec.offset(14) as *mut Ipv4Header;
-                (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
-                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (new_pkt_len - 14) as u16);
-            }
-            
-            
-            // let buf_addr point to the start of the ethernet packet. 
-            // let data_off be 0.
-            MBuf{
-                buf_addr: address_ipsec,
-                boxed: boxed_ipsec,
-                data_off: 0,
-                pkt_len: new_pkt_len as u32,
-                data_len: new_pkt_len as u16,
-                buf_len: new_pkt_len as u16,
-            }
+            let mut file = File::create(file_name).unwrap();
+            let slice = unsafe { std::slice::from_raw_parts(address, pkt_len as usize) };
+            file.write_all(slice).unwrap();
+            // println!("dumptrace");
         }
-        else
-        {
-            let mut file = FILE_GEM5.write().unwrap();
-            let mut buf = [0; 2];
-            file.read(&mut buf).unwrap();
-            let pkt_len: u16 = as_u16_le(&buf);
-            // println!("{}", pkt_len);
-
-            let mut temp_vec: Vec<u8> = vec![0u8; pkt_len as usize];
-            file.read_exact(&mut temp_vec).unwrap();
-            
-            let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
-            let address = &mut boxed.my_box[0] as *mut u8;
-
-            if cfg!(feature = "dumptrace"){
-                let mut cnt = FILE_CNT.write().unwrap();
-                let file_name = format!("/users/yangzhou/NetBricks-GEM5/examples/dumptrace/trace/trace_{}.txt", cnt);
-                *cnt += 1;
-                *cnt %= 32;
-
-                let mut file = File::create(file_name).unwrap();
-                let slice = unsafe { std::slice::from_raw_parts(address, pkt_len as usize) };
-                file.write_all(slice).unwrap();
-                // println!("dumptrace");
-            }
-            
-            // let buf_addr point to the start of the ethernet packet. 
-            // let data_off be 0.
-            MBuf{
-                buf_addr: address,
-                boxed,
-                data_off: 0,
-                pkt_len: pkt_len as u32,
-                data_len: pkt_len as u16,
-                buf_len: pkt_len as u16,
-            }
+        
+        // let buf_addr point to the start of the ethernet packet. 
+        // let data_off be 0.
+        MBuf{
+            buf_addr: address,
+            data_off: 0,
+            pkt_len: pkt_len as u32,
+            data_len: pkt_len as u16,
+            buf_len: pkt_len as u16,
         }
     }
 
