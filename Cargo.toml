@@ -20,6 +20,7 @@ members = [
     # 
     "examples/spmc",
     "examples/hyperscan",
+    "examples/dumptrace",
 ]
 exclude = ["rust-sgx", "mbedtls-0.3.0"]
 

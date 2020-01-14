@@ -14,6 +14,7 @@ use fxhash::FxHasher;
 use zipfgen::ZipfDistribution;
 use std::fs::File;
 use std::io::Write;
+use std::io::Read;
 
 #[derive(Clone)]
 struct SuperBox { my_box: Box<[u8]> }
@@ -89,7 +90,9 @@ impl myrand {
         new_rand
     }
 }
-
+pub struct pktgen {
+    pub 
+}
 lazy_static! {
     static ref RAND_GEN: Arc<RwLock<myrand>> = {
         let r = myrand::new();
@@ -99,17 +102,27 @@ lazy_static! {
         let us = ZipfDistribution::new(3 * 1024 * 1024, 1.1).unwrap();
         Arc::new(us)
     };
-    #[cfg(feature = "dumptrace")]
-    static ref FILE_HANDLER: Arc<RwLock<File>> = {
-        let file = File::create("/users/yangzhou/NetBricks-GEM5/examples/dpi/trace.txt").unwrap();
+    static ref FILE_GEM5: Arc<RwLock<File>> = {
+        let file = File::open("/users/yangzhou/ictf2010.dat").unwrap();
         Arc::new(RwLock::new(file))
     };
-    #[cfg(feature = "dumptrace")]
+    
+}
+
+lazy_static! {
     static ref FILE_CNT: Arc<RwLock<usize>> = {
         let cnt = 0;
         Arc::new(RwLock::new(cnt))
     };
+}
 
+fn as_u16_be(array: &[u8; 2]) -> u16 {
+    ((array[0] as u16) <<  8) +
+    ((array[1] as u16) <<  0)
+}
+fn as_u16_le(array: &[u8; 2]) -> u16 {
+    ((array[0] as u16) <<  0) +
+    ((array[1] as u16) <<  8)
 }
 
 impl MBuf {
@@ -229,32 +242,28 @@ impl MBuf {
         }
         else
         {
-            // println!("non-ipsec");
-            let mut temp_vec: Vec<u8> = vec![0; pkt_len as usize];
-            MBuf::get_rand_str(&mut temp_vec.as_mut_slice()[54..]);
+            let mut file = FILE_GEM5.write().unwrap();
+            let mut buf = [0; 2];
+            file.read(&mut buf).unwrap();
+            let pkt_len: u16 = as_u16_le(&buf);
+            // println!("{}", pkt_len);
+
+            let mut temp_vec: Vec<u8> = vec![0u8; pkt_len as usize];
+            file.read_exact(&mut temp_vec).unwrap();
             
             let mut boxed: SuperBox = SuperBox{ my_box: temp_vec.into_boxed_slice(), }; // Box<[u8]> is just like &[u8];
             let address = &mut boxed.my_box[0] as *mut u8;
 
-            let (srcip, dstip, srcport, dstport) = MBuf::get_zipf_five_tuples();
-            unsafe{
-                let eth_hdr: *mut EthernetHeader = address.offset(0) as *mut EthernetHeader;
-                let ip_hdr: *mut Ipv4Header = address.offset(14) as *mut Ipv4Header;
-                let tcp_hdr: *mut TcpHeader = address.offset(14 + 20) as *mut TcpHeader;
-                (*eth_hdr).init(MacAddr::new(1, 2, 3, 4, 5, 6), MacAddr::new(0xa, 0xb, 0xc, 0xd, 0xf, 0xf));
-                (*ip_hdr).init(MBuf::get_ipv4addr_from_u32(srcip), MBuf::get_ipv4addr_from_u32(dstip), ProtocolNumbers::Tcp, (pkt_len - 14) as u16);
-                (*tcp_hdr).init(srcport, dstport);
-            }
             if cfg!(feature = "dumptrace"){
-                // let mut file = FILE_HANDLER.write().unwrap();
                 let mut cnt = FILE_CNT.write().unwrap();
-                let file_name = format!("/users/yangzhou/NetBricks-GEM5/examples/dpi/trace_{}.txt", cnt);
+                let file_name = format!("/users/yangzhou/NetBricks-GEM5/examples/dumptrace/trace/trace_{}.txt", cnt);
                 *cnt += 1;
+                *cnt %= 32;
 
                 let mut file = File::create(file_name).unwrap();
                 let slice = unsafe { std::slice::from_raw_parts(address, pkt_len as usize) };
                 file.write_all(slice).unwrap();
-                println!("dumptrace");
+                // println!("dumptrace");
             }
             
             // let buf_addr point to the start of the ethernet packet. 
@@ -263,7 +272,7 @@ impl MBuf {
                 buf_addr: address,
                 boxed,
                 data_off: 0,
-                pkt_len: pkt_len,
+                pkt_len: pkt_len as u32,
                 data_len: pkt_len as u16,
                 buf_len: pkt_len as u16,
             }
