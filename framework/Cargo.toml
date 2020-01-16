@@ -29,8 +29,8 @@ twox-hash = ">= 1.2"
 fxhash = "0.2.1"
 time = { version = "0.1.42" }
 zipfgen = { version = "0.1.0", path = "../zipfgen" }
-openssl-sys = "0.9"
-openssl = { version = "0.10", path = "../openssl-0.10.24"}
+# openssl-sys = "0.9"
+# openssl = { version = "0.10", path = "../openssl-0.10.24"}
 
 # enclave can only use mbedtls for crypto.
 # mbedtls = {version="0.3.0", default-features = false, features = ["sgx"]}

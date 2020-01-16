@@ -39,7 +39,7 @@ extern crate time;
 extern crate proptest; 
 extern crate zipfgen;
 
-extern crate openssl;
+// extern crate openssl;
 // extern crate mbedtls;
 
 // need these first so other modules in netbricks can use the macros

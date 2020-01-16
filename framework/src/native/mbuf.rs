@@ -4,7 +4,6 @@ use super::super::packets::{EthernetHeader, MacAddr};
 use super::super::packets::ip::v4::Ipv4Header;
 use super::super::packets::ip::ProtocolNumbers;
 use super::super::packets::TcpHeader;
-use super::super::utils::ipsec::*;
 use super::super::scheduler::PKT_NUM;
 use std::net::Ipv4Addr;
 // use std::cell::RefCell;
