@@ -23,7 +23,7 @@ members = [
     "examples/dumptrace",
     "examples/dpi-master",
 ]
-exclude = ["rust-sgx", "mbedtls-0.3.0"]
+exclude = ["rust-sgx", "mbedtls-0.3.0", "spmc-0.3.0"]
 
 [profile.release]
 opt-level = 3

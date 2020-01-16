@@ -19,7 +19,7 @@ echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 
 # directly building all NFs using customized rustc without stack overflow check. 
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec dumptrace
-for TASK in macswap dumptrace dpi-master
+for TASK in macswap dumptrace dpi-master spmc
 do 
 	# Build enclave APP
 	pushd examples/$TASK
