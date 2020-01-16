@@ -9,4 +9,6 @@ PORT_OPTIONS="dpdk:eth_pcap0,rx_pcap=/users/yangzhou/traffic/$TRAFFIC/chunck0.pc
 # MODE=release
 MODE=debug
 # TARGET=x86_64-unknown-linux-gnu
-TARGET=mipsel-unknown-linux-gnu
+# TARGET=mipsel-unknown-linux-gnu
+TARGET=aarch64-unknown-linux-gnu
+
