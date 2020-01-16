@@ -1,0 +1,3 @@
+[target.mipsel-unknown-linux-gnu]
+ar = "mipsel-linux-gnu-ar"
+linker = "mipsel-linux-gnu-gcc"

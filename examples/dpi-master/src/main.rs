@@ -33,6 +33,7 @@ use std::result::Result as stdRes;
 use failure::Fail;
 use failure::Error;
 use libc::{c_void, close, ftruncate, mmap, munmap, shm_open, shm_unlink};
+use std::convert::TryInto;
 
 mod dpi;
 
@@ -96,7 +97,7 @@ unsafe{
         }
     };
     assert!(fd >= 0, "Could not create shared memory segment");
-    let ftret = ftruncate(fd, size as i64);
+    let ftret = ftruncate(fd, (size as i64).try_into().unwrap());
     assert!(ftret == 0, "Could not truncate");
     let address = mmap(
         ptr::null_mut(),
