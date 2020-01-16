@@ -20,9 +20,9 @@ echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 if [ $# -ge 1 ]; then
     TASK=$1
 fi
-echo $TASK
+echo "target/$TARGET/$MODE/$TASK"
 
-cd target/$MODE/
+cd target/$TARGET/$MODE/
 if [ $# -eq 2 ]; then
     RUST_BACKTRACE=1 ./$TASK $2
 else
