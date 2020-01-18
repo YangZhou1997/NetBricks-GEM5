@@ -1,5 +1,5 @@
 #![deny(warnings)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 //! # SPMC
 //!
 //! A single producer, multiple consumers. Commonly used to implement
@@ -29,7 +29,7 @@
 //! }
 //! ```
 
-mod channel;
+pub mod channel;
 mod loom;
 
 pub use self::channel::{channel, Sender, Receiver};

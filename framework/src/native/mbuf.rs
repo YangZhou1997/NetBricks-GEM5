@@ -17,6 +17,38 @@ use std::io::Write;
 use std::io::Read;
 
 #[derive(Clone)]
+#[derive(Debug)]
+#[derive(Copy)]
+pub struct MBuf_T {
+    pub buf_addr: u64,
+    pub data_off: u16, 
+    pub pkt_len: u32,
+    pub data_len: u16,
+    pub buf_len: u16,
+}
+
+impl MBuf_T {
+    pub unsafe fn to_mbuf_t(buf: *mut MBuf) -> MBuf_T {
+        MBuf_T {
+            buf_addr: std::mem::transmute::<*mut u8, u64>((*buf).buf_addr),
+            data_off: (*buf).data_off,
+            pkt_len: (*buf).pkt_len,
+            data_len: (*buf).data_len,
+            buf_len: (*buf).buf_len,
+        }
+    }
+    pub unsafe fn to_mbuf(buf_t: MBuf_T) -> MBuf {
+        MBuf {
+            buf_addr: std::mem::transmute::<u64, *mut u8>(buf_t.buf_addr),
+            data_off: buf_t.data_off,
+            pkt_len: buf_t.pkt_len,
+            data_len: buf_t.data_len,
+            buf_len: buf_t.buf_len,
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct rte_mbuf {
     pub buf_addr: *mut u8,
     pub data_off: u16, 
@@ -115,6 +147,7 @@ impl pktgen {
     pub fn next(&mut self) -> (*mut u8, u16) {
         let cur = self.cur_index;
         self.cur_index += 1;
+        self.cur_index %= PKT_LEN as usize;
         (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
     }
 }

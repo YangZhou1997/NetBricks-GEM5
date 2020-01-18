@@ -19,7 +19,9 @@ echo $TARGET
 
 # directly building all NFs using customized rustc without stack overflow check. 
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec dumptrace
-for TASK in macswap dumptrace dpi-master spmc
+# for TASK in macswap dumptrace dpi-master spmc dpi
+# for TASK in dpi macswap spmc
+for TASK in macswap spmc
 do 
 	# Build enclave APP
 	pushd examples/$TASK

@@ -5,7 +5,7 @@ use std::time::Duration;
 use std::sync::mpsc::{SendError};
 
 const STOP: usize = 0xdeadbeef;
-const NUM_THREAD: usize = 32;
+const NUM_THREAD: usize = 1;
 
 fn main() {
 
@@ -25,6 +25,8 @@ fn main() {
                     break;
                 }
             }
+            // thread::sleep(Duration::from_secs(1));
+            println!("thread leaves!");
         }));
     }
 
@@ -35,7 +37,9 @@ fn main() {
             Err(SendError(t)) => println!("sending error: {:?}", t),
         }
     }
-    for _ in 0..NUM_THREAD {
+
+    for i in 0..NUM_THREAD {
+        println!("shuting down thread {}", i);
         let sendret = tx.send(STOP);
         match sendret {
             Ok(()) => println!("sending succeeds: {:?}", STOP),
