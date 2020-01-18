@@ -21,15 +21,15 @@ echo $TARGET
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec dumptrace
 # for TASK in macswap dumptrace dpi-master spmc dpi
 # for TASK in dpi macswap spmc
-for TASK in macswap spmc
+for TASK in macswap dpi spmc
 do 
 	# Build enclave APP
 	pushd examples/$TASK
 	if [ "$MODE" == "debug" ]; then
-		# cargo +stage1 build
+		cargo +stage1 build
 		cargo build --target=$TARGET
 	else
-		# cargo +stage1 build --release
+		cargo +stage1 build --release
 		cargo build --target=$TARGET --release
 	fi
 	popd

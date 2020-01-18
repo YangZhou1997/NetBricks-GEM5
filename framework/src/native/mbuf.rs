@@ -15,6 +15,7 @@ use zipfgen::ZipfDistribution;
 use std::fs::File;
 use std::io::Write;
 use std::io::Read;
+use std::io::stdout;
 
 #[derive(Clone)]
 #[derive(Debug)]
@@ -123,7 +124,11 @@ pub struct pktgen {
 }
 impl pktgen {
     pub fn new(filename: &str) -> pktgen {
+        println!("trying to open file {}", filename);
+        stdout().flush().unwrap();
         let mut file = File::open(filename).unwrap();
+        println!("opening succeeds");
+        stdout().flush().unwrap();
         let mut pkts_temp: Vec<rawpkt> = Vec::new();
         for i in 0..PKT_NUM {
             let mut buf = [0u8; 2];
