@@ -3,25 +3,27 @@ members = [
     "framework",
     #
     "examples/macswap",
-   	"examples/acl-fw",
-   	"examples/lpm",
-   	"examples/maglev",
+   	# "examples/acl-fw",
+   	# "examples/lpm",
+   	# "examples/maglev",
    	"examples/dpi",
-   	"examples/nat-tcp-v4",
-   	"examples/monitoring",
+   	# "examples/nat-tcp-v4",
+   	# "examples/monitoring",
     # 
-    "examples/macswap-ipsec",
-    "examples/acl-fw-ipsec",
-    "examples/lpm-ipsec",
-    "examples/maglev-ipsec",
-    "examples/dpi-ipsec",
-    "examples/nat-tcp-v4-ipsec",
-    "examples/monitoring-ipsec",
+    # "examples/macswap-ipsec",
+    # "examples/acl-fw-ipsec",
+    # "examples/lpm-ipsec",
+    # "examples/maglev-ipsec",
+    # "examples/dpi-ipsec",
+    # "examples/nat-tcp-v4-ipsec",
+    # "examples/monitoring-ipsec",
     # 
     "examples/spmc",
-    "examples/hyperscan",
-    "examples/dumptrace",
-    "examples/dpi-master",
+    # "examples/hyperscan",
+    # "examples/dumptrace",
+    # "examples/dpi-master",
+    "examples/helloworld",
+    "examples/dpi-normal"
 ]
 exclude = ["rust-sgx", "mbedtls-0.3.0", "spmc-0.3.0"]
 

@@ -30,8 +30,11 @@ pub struct MBuf_T {
 
 impl MBuf_T {
     pub unsafe fn to_mbuf_t(buf: *mut MBuf) -> MBuf_T {
+        // let buf_addr = std::mem::transmute::<*mut u8, u32>((*buf).buf_addr) as u64;
+        let buf_addr = std::mem::transmute::<*mut u8, u64>((*buf).buf_addr);
+        
         MBuf_T {
-            buf_addr: std::mem::transmute::<*mut u8, u64>((*buf).buf_addr),
+            buf_addr: buf_addr,
             data_off: (*buf).data_off,
             pkt_len: (*buf).pkt_len,
             data_len: (*buf).data_len,
@@ -39,8 +42,12 @@ impl MBuf_T {
         }
     }
     pub unsafe fn to_mbuf(buf_t: MBuf_T) -> MBuf {
+        // let buf_addr = std::mem::transmute::<u32, *mut u8>(buf_t.buf_addr as u32);
+        let buf_addr = std::mem::transmute::<u64, *mut u8>(buf_t.buf_addr);
+
+        
         MBuf {
-            buf_addr: std::mem::transmute::<u64, *mut u8>(buf_t.buf_addr),
+            buf_addr: buf_addr,
             data_off: buf_t.data_off,
             pkt_len: buf_t.pkt_len,
             data_len: buf_t.data_len,
@@ -126,7 +133,11 @@ impl pktgen {
     pub fn new(filename: &str) -> pktgen {
         println!("trying to open file {}", filename);
         stdout().flush().unwrap();
-        let mut file = File::open(filename).unwrap();
+        let mut file = match File::open(filename) {
+            Ok(file) => file,
+            Err(why) => panic!("couldn't open {}", why),
+        };
+
         println!("opening succeeds");
         stdout().flush().unwrap();
         let mut pkts_temp: Vec<rawpkt> = Vec::new();
