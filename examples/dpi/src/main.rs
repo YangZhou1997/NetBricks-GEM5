@@ -157,8 +157,11 @@ fn main() -> Result<()> {
         }
         if total_packets % (1024 * 1024 / 16) == 0 {
             println!("dpi packets processed: {}", total_packets);
+            // just for testing the trace loading time! 
+            // break;
         }
 
+        // we let nfs in gem5 run forever; 
         // if total_packets >= (pkt_num as u32).try_into().unwrap() {
         //     break;
         // }
