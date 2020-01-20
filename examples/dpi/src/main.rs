@@ -156,12 +156,12 @@ fn main() -> Result<()> {
             _ => unreachable!(),
         }
         if total_packets % (1024 * 1024 / 16) == 0 {
-            println!("packets processed: {}", total_packets);
+            println!("dpi packets processed: {}", total_packets);
         }
 
-        if total_packets >= (pkt_num as u32).try_into().unwrap() {
-            break;
-        }
+        // if total_packets >= (pkt_num as u32).try_into().unwrap() {
+        //     break;
+        // }
     }
 
     // for i in 0..NUM_THREAD {

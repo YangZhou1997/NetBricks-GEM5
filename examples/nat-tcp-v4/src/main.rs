@@ -163,8 +163,8 @@ fn main() -> Result<()> {
     if argvs.len() == 2 {
         pkt_num = argvs[1].parse::<u64>().unwrap();
     }
-    println!("pkt_num: {}", pkt_num);
+    // println!("pkt_num: {}", pkt_num);
     let mut context = initialize_system()?;
-    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num, "nat-tcp-v4"); // will trap in the run() and return after finish
     Ok(())
 }

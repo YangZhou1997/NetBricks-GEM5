@@ -202,9 +202,10 @@ fn main() -> Result<()> {
     if argvs.len() == 2 {
         pkt_num = argvs[1].parse::<u64>().unwrap();
     }
-    println!("pkt_num: {}", pkt_num);
+    // Does not help; will run forever. 
+    // println!("pkt_num: {}", pkt_num);
 
     let mut context = initialize_system()?;
-    context.run(Arc::new(install), pkt_num); // will trap in the run() and return after finish
+    context.run(Arc::new(install), pkt_num, "acl-fw"); // will trap in the run() and return after finish
     Ok(())
 }

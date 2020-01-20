@@ -28,11 +28,11 @@ pub struct NetBricksContext {
 impl NetBricksContext {
 
     /// Run a function (which installs a pipeline) on the first core in the system, blocking. 
-    pub fn run<T>(&mut self, run: Arc<T>, npkts: u64)
+    pub fn run<T>(&mut self, run: Arc<T>, npkts: u64, nf_name: &'static str)
     where
         T: Fn(Vec<AlignedSimulateQueue>, &mut StandaloneScheduler) + Send + Sync + 'static,
     {
-        let mut sched = StandaloneScheduler::new(npkts);
+        let mut sched = StandaloneScheduler::new(npkts, nf_name);
         let boxed_run = run.clone();
         let ports = self.rx_queues.clone();
         sched.run(Arc::new(move |s| {

@@ -43,6 +43,8 @@ pub struct StandaloneScheduler {
     npkts: u64, 
     /// Number of packet that will process
     tol_pkts: u64,
+    /// the name of nf.
+    nf_name: &'static str,
 }
 
 /// Messages that can be sent on the scheduler channel to add or remove tasks.
@@ -58,7 +60,7 @@ const DEFAULT_Q_SIZE: usize = 256;
 
 impl Default for StandaloneScheduler {
     fn default() -> StandaloneScheduler {
-        StandaloneScheduler::new(1024 * 1024)
+        StandaloneScheduler::new(1024 * 1024, "default")
     }
 }
 
@@ -71,13 +73,14 @@ impl Scheduler for StandaloneScheduler {
 }
 
 impl StandaloneScheduler {
-    pub fn new(tol_pkts: u64) -> StandaloneScheduler {
+    pub fn new(tol_pkts: u64, nf_name: &'static str) -> StandaloneScheduler {
         StandaloneScheduler {
             run_q: Vec::with_capacity(DEFAULT_Q_SIZE),
             next_task: 0,
             execute_loop: false,
             npkts: 0,
             tol_pkts, 
+            nf_name,
         }
     }
 
@@ -110,11 +113,12 @@ impl StandaloneScheduler {
         let next = self.next_task + 1;
         if next == len {
             self.next_task = 0;
-            if self.npkts >= self.tol_pkts {
-                self.execute_loop = false;
-            }
+            // In gem5 simulation, we run it for a fixed number of instructions, instead of fixing number of packets. 
+            // if self.npkts >= self.tol_pkts {
+            //     self.execute_loop = false;
+            // }
             if self.npkts % (1024 * 1024 / 16) == 0 {
-                println!("packets processed: {}", self.npkts);
+                println!("{} packets processed: {}", self.nf_name, self.npkts);
             }
         } else {
             self.next_task = next;

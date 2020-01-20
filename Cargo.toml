@@ -18,7 +18,7 @@ members = [
     # "examples/nat-tcp-v4-ipsec",
     # "examples/monitoring-ipsec",
     # 
-    # "examples/spmc",
+    "examples/spmc",
     # "examples/hyperscan",
     # "examples/dumptrace",
     # "examples/dpi-master",
