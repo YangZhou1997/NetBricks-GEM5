@@ -1,30 +1,24 @@
-#[macro_use]
-extern crate lazy_static;
+extern crate spmc;
 use std::thread;
 use std::time::Duration;
-use std::sync::RwLock;
-use std::sync::Arc;
+// use std::sync::mpsc;
+use std::sync::mpsc::{SendError};
 
 const STOP: usize = 0xdeadbeef;
 const NUM_THREAD: usize = 1;
 
-lazy_static! {
-    static ref AC: Arc<RwLock> = {
-        let mut rules = vec![];
-
-        for line in DPIRULES.iter() {
-            rules.push(line);
-        }
-        if RULE_NUM < rules.len() {
-            rules.truncate(RULE_NUM);
-        }
-        println!("dpi rules length: {}", rules.len());
-        //let patterns = &["This is", "Yang", "abcedf"];
-        let patterns = &rules;
-        let m = AhoCorasick::new(patterns);
-        Arc::new(m)
-    };
+fn facci(n: u32) -> u32 {
+    if n == 0 {
+        return 0;
+    }
+    else if n == 1 {
+        return 1;
+    }
+    else{
+        return facci(n-1) + facci(n-2);
+    }
 }
+
 
 fn main() {
 

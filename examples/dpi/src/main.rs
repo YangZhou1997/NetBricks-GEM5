@@ -41,9 +41,11 @@ use netbricks::native::mbuf::MBuf_T;
 use std::convert::TryInto;
 
 const STOP: u32 = 0xdeadbeef;
-const NUM_THREAD: usize = 1;
+const NUM_THREAD: usize = 16;
 
-const RULE_NUM: usize = (1 << 30); 
+const RULE_NUM: usize = (1 << 30);
+// const RULE_NUM: usize = 32; 
+
 
 /* According to my customized pktgen_zeroloss: */
 // set pkt_size: 48 includes the 4B pkt_idx, 2B burst_size, and 2B identifier;
@@ -81,7 +83,7 @@ fn main() -> Result<()> {
     println!("spmc start");
     let (mut tx, rx) = spmc::channel();
     let (mut tx_r, rx_r) = mpsc::channel();
-    
+
     let mut handles = Vec::new();
     for n in 0..NUM_THREAD {
         let rx = rx.clone();
@@ -91,9 +93,9 @@ fn main() -> Result<()> {
                 unsafe{
                     let mut mbuf = MBuf_T::to_mbuf(rx.recv().unwrap() as MBuf_T);
 
-                    if mbuf.pkt_len == STOP {
-                        break;
-                    }
+                    // if mbuf.pkt_len == STOP {
+                    //     break;
+                    // }
 
                     let packet = RawPacket::from_mbuf(&mut mbuf as *mut MBuf);
                     let mut ethernet = packet.parse::<Ethernet>().unwrap();
@@ -110,7 +112,7 @@ fn main() -> Result<()> {
                     // println!("{:?}", matches);
                     // stdout().flush().unwrap();
 
-                    println!("worker {} recvd pktlen: {}", n, mbuf.pkt_len);
+                    // println!("worker {} recvd pktlen: {}", n, mbuf.pkt_len);
                     // do some processing. 
                     // thread::sleep(Duration::from_secs(1));
                     
@@ -118,7 +120,7 @@ fn main() -> Result<()> {
                 }
             }
             // thread::sleep(Duration::from_secs(1));
-            println!("thread leaves!");
+            println!("thread {} leaves!", n);
         }));
     }
 
@@ -133,15 +135,15 @@ fn main() -> Result<()> {
 
                 for i in 0..(received as usize) {
                     unsafe{
-                        let sendret = tx.send(MBuf_T::to_mbuf_t(buffers[i]));
-                        match sendret {
-                            Ok(()) => println!("sending succeeds: {:?}", total_packets + i),
-                            Err(SendError(t)) => println!("sending error: {:?}", total_packets + i),
-                        }                    
+                        let sendret = tx.send(MBuf_T::to_mbuf_t(buffers[i])).unwrap();
+                        // match sendret {
+                        //     Ok(()) => println!("sending succeeds: {:?}", total_packets + i),
+                        //     Err(SendError(t)) => println!("sending error: {:?}", total_packets + i),
+                        // }
 
                         // get message from dpi thread and simulating sending packet out;
                         let num_matches = rx_r.recv().unwrap();
-                        println!("matches number: {}", num_matches);
+                        // println!("matches number: {}", num_matches);
 
                         let temp_box = Box::from_raw(buffers[i]);
                         drop(temp_box);
@@ -153,27 +155,31 @@ fn main() -> Result<()> {
             // never return an error. The error arm is unreachable
             _ => unreachable!(),
         }
+        if total_packets % (1024 * 1024 / 16) == 0 {
+            println!("packets processed: {}", total_packets);
+        }
+
         if total_packets >= (pkt_num as u32).try_into().unwrap() {
             break;
         }
     }
 
-    for i in 0..NUM_THREAD {
-        println!("shuting down thread {}", i);
-        let mut mbuf = MBuf::new(1024);
-        mbuf.pkt_len = STOP;
-        unsafe{
-            let sendret = tx.send(MBuf_T::to_mbuf_t(&mut mbuf as *mut MBuf));
-            match sendret {
-                Ok(()) => println!("STOP sending succeeds!"),
-                Err(SendError(t)) => println!("STOP sending error!"),
-            }
-        }
-    }
+    // for i in 0..NUM_THREAD {
+    //     println!("shuting down thread {}", i);
+    //     let mut mbuf = MBuf::new(1024);
+    //     mbuf.pkt_len = STOP;
+    //     unsafe{
+    //         let sendret = tx.send(MBuf_T::to_mbuf_t(&mut mbuf as *mut MBuf));
+    //         match sendret {
+    //             Ok(()) => println!("STOP sending succeeds!"),
+    //             Err(SendError(t)) => println!("STOP sending error!"),
+    //         }
+    //     }
+    // }
 
-    for handle in handles {
-      handle.join().unwrap();
-    }
+    // for handle in handles {
+    //   handle.join().unwrap();
+    // }
 
     Ok(())
 }

@@ -46,6 +46,9 @@ impl<T: Send> Sender<T> {
                     self.inner.sleeping_condvar.notify_one();
                     break;
                 }
+                // if self.inner.is_disconnected.load(Ordering::SeqCst) {
+                //     break;
+                // }
             }
             Ok(())
         }

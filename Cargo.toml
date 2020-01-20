@@ -3,12 +3,12 @@ members = [
     "framework",
     #
     "examples/macswap",
-   	# "examples/acl-fw",
-   	# "examples/lpm",
-   	# "examples/maglev",
+   	"examples/acl-fw",
+   	"examples/lpm",
+   	"examples/maglev",
    	"examples/dpi",
-   	# "examples/nat-tcp-v4",
-   	# "examples/monitoring",
+   	"examples/nat-tcp-v4",
+   	"examples/monitoring",
     # 
     # "examples/macswap-ipsec",
     # "examples/acl-fw-ipsec",
@@ -18,7 +18,7 @@ members = [
     # "examples/nat-tcp-v4-ipsec",
     # "examples/monitoring-ipsec",
     # 
-    "examples/spmc",
+    # "examples/spmc",
     # "examples/hyperscan",
     # "examples/dumptrace",
     # "examples/dpi-master",
