@@ -66,6 +66,7 @@ lazy_static! {
         //let patterns = &["This is", "Yang", "abcedf"];
         let patterns = &rules;
         let m = AhoCorasick::new(patterns);
+        println!("dpi AhoCorasick graph built up!");
         Arc::new(m)
     };
 }
