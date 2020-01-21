@@ -49,6 +49,10 @@ Thus,
 
 1. Make sure you are using nightly-2019-05-22: 
     ```shell
+    curl https://sh.rustup.rs -sSf | sh
+    source $HOME/.cargo/env
+    rustup install nightly
+    rustup default nightly
     rustup install nightly-2019-05-22
     rustup override set nightly-2019-05-22
     ```
