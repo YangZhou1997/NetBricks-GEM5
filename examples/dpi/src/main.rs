@@ -155,10 +155,11 @@ fn main() -> Result<()> {
             // never return an error. The error arm is unreachable
             _ => unreachable!(),
         }
+        // just for testing the trace loading time! 
+        // break;
+        
         if total_packets % (1024 * 1024 / 16) == 0 {
             println!("dpi packets processed: {}", total_packets);
-            // just for testing the trace loading time! 
-            // break;
         }
 
         // we let nfs in gem5 run forever; 
