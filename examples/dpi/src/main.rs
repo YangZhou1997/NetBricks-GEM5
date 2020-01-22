@@ -21,7 +21,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc;
-use std::sync::mpsc::{SendError};
+use std::sync::mpsc::{SendError, TryRecvError};
 use spmc::channel::{Sender, Receiver};
 
 use netbricks::packets::ip::v4::Ipv4;
@@ -70,7 +70,6 @@ lazy_static! {
         Arc::new(m)
     };
 }
-
 
 fn main() -> Result<()> {
     use std::env;
@@ -143,8 +142,13 @@ fn main() -> Result<()> {
                         // }
 
                         // get message from dpi thread and simulating sending packet out;
-                        let num_matches = rx_r.recv().unwrap();
+                        // let num_matches = rx_r.recv().unwrap(); // recv() will block current thread. 
                         // println!("matches number: {}", num_matches);
+
+                        let num_matches: usize = match rx_r.try_recv() {
+                            Ok(t) => t,
+                            _ => 0,
+                        };
 
                         let temp_box = Box::from_raw(buffers[i]);
                         drop(temp_box);
