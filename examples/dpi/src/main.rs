@@ -1,5 +1,6 @@
 extern crate spmc;
 extern crate colored;
+extern crate bus;
 extern crate fnv;
 #[macro_use]
 extern crate lazy_static;
@@ -39,6 +40,7 @@ use netbricks::operators::BATCH_SIZE;
 use netbricks::native::mbuf::MBuf;
 use netbricks::native::mbuf::MBuf_T;
 use std::convert::TryInto;
+use bus::Bus;
 
 const STOP: u32 = 0xdeadbeef;
 const NUM_THREAD: usize = 16;
@@ -81,12 +83,12 @@ fn main() -> Result<()> {
     println!("pkt_num: {}", pkt_num);
     
     println!("spmc start");
-    let (mut tx, rx) = spmc::channel();
+    let mut bus = Bus::new(1000);
     let (mut tx_r, rx_r) = mpsc::channel();
 
     let mut handles = Vec::new();
     for n in 0..NUM_THREAD {
-        let rx = rx.clone();
+        let mut rx = bus.add_rx();
         let tx_r = tx_r.clone();
         handles.push(thread::spawn(move || {
             loop {
@@ -135,7 +137,8 @@ fn main() -> Result<()> {
 
                 for i in 0..(received as usize) {
                     unsafe{
-                        let sendret = tx.send(MBuf_T::to_mbuf_t(buffers[i])).unwrap();
+                        // let sendret = tx.send(MBuf_T::to_mbuf_t(buffers[i])).unwrap();
+                        let sendret = bus.broadcast(MBuf_T::to_mbuf_t(buffers[i]));
                         // match sendret {
                         //     Ok(()) => println!("sending succeeds: {:?}", total_packets + i),
                         //     Err(SendError(t)) => println!("sending error: {:?}", total_packets + i),
