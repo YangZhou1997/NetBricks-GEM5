@@ -23,7 +23,8 @@ members = [
     # "examples/dumptrace",
     # "examples/dpi-master",
     "examples/helloworld",
-    "examples/dpi-normal"
+    "examples/dpi-normal",
+    "examples/dpi-queue",
 ]
 exclude = ["rust-sgx", "mbedtls-0.3.0", "spmc-0.3.0"]
 
