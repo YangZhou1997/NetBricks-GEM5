@@ -162,7 +162,7 @@ impl pktgen {
         pktgen {
             pkts: pkts_temp.into_boxed_slice(),
             rand: myrand::new(),
-            zipf: ZipfDistribution::new(1 * 1024 * 1024, 1.1).unwrap(),
+            zipf: ZipfDistribution::new(PKT_NUM, 1.1).unwrap(),
         }
     }
     pub fn next(&mut self) -> (*mut u8, u16) {
