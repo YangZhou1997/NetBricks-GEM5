@@ -177,7 +177,9 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
 		        if let Some(acl) = acls.borrow().iter().find(|ref acl| acl.matches(&flow)) {
 		            if !acl.drop {
 		                FLOW_CACHE.with(|flow_cache| {
-		                    (*flow_cache.borrow_mut()).insert(flow);
+        					if flow_cache.borrow().len() < 200000 {
+		                        (*flow_cache.borrow_mut()).insert(flow);
+        					}
 		                });
 		            }
 		            flag = true; // retain
