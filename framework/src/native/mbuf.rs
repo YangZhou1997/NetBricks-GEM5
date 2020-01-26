@@ -119,6 +119,8 @@ impl myrand {
         new_rand
     }
 }
+
+
 // Simulate 
 pub struct rawpkt {
     pub len: u16,
@@ -127,7 +129,8 @@ pub struct rawpkt {
 
 pub struct pktgen {
     pub pkts: Box<[rawpkt]>,
-    pub cur_index: usize,
+    pub rand: myrand,
+    pub zipf: ZipfDistribution,
 }
 impl pktgen {
     pub fn new(filename: &str) -> pktgen {
@@ -155,32 +158,23 @@ impl pktgen {
                 raw: temp_vec.into_boxed_slice(),
             })
         }
+        println!("Reading pkt trace done!");
         pktgen {
             pkts: pkts_temp.into_boxed_slice(),
-            cur_index: 0 as usize,
+            rand: myrand::new(),
+            zipf: ZipfDistribution::new(1 * 1024 * 1024, 1.1).unwrap(),
         }
     }
     pub fn next(&mut self) -> (*mut u8, u16) {
-        let cur = self.cur_index;
-        self.cur_index += 1;
-        self.cur_index %= PKT_LEN as usize;
-        (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
+        let r = self.rand.rand();
+        let zipf_r = self.zipf.next(r) - 1;
+        (&mut self.pkts[zipf_r].raw[0] as *mut u8, self.pkts[zipf_r].len)
     }
 }
-
 lazy_static! {
-    static ref RAND_GEN: Arc<RwLock<myrand>> = {
-        let r = myrand::new();
-        Arc::new(RwLock::new(r))
-    };
-    static ref ZIPF_GEN: Arc<ZipfDistribution> = {
-        let us = ZipfDistribution::new(3 * 1024 * 1024, 1.1).unwrap();
-        Arc::new(us)
-    };
     static ref PKTGEN: Arc<RwLock<pktgen>> = {
-        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010.dat")))
+        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010_1Mflow.dat")))
     };
-    
 }
 
 lazy_static! {
@@ -200,67 +194,6 @@ fn as_u16_le(array: &[u8; 2]) -> u16 {
 }
 
 impl MBuf {
-// We borrow this code from https://answers.launchpad.net/polygraph/+faq/1478. 
-// The corresponding paper is http://ldc.usb.ve/~mcuriel/Cursos/WC/spe2003.pdf.gz
-// int popzipf(int n, long double skew) {
-//     // popZipf(skew) = wss + 1 - floor((wss + 1) ** (x ** skew))
-//     long double u = rand() / (long double) (RAND_MAX);
-//     return (int) (n + 1 - floor(pow(n + 1, pow(u, skew))));
-// }
-    #[inline]
-    fn get_zipf_index() -> usize {
-        // let r = RAND_GEN.write().unwrap().rand();
-        // let u: f64 = r as f64 / std::u64::MAX as f64;
-        // let n1: f64 = (index_range + 1) as f64 * 1.0;
-        // let zipf_r: u64 = (n1 - (n1.powf(u.powf(skew))).floor()) as u64;
-        // // println!("{}", zipf_r);
-        // zipf_r
-
-        if cfg!(feature = "uniform")
-        {
-            // println!("uniform distribution");
-            let r = RAND_GEN.write().unwrap().rand();
-            r as usize
-        }
-        else
-        {
-            // println!("zipf distribution");
-            let r = RAND_GEN.write().unwrap().rand();
-            let zipf_r = ZIPF_GEN.next(r);
-            zipf_r
-        }
-    }
-    #[inline]
-    fn get_zipf_five_tuples() -> (u32, u32, u16, u16) {
-        let index = MBuf::get_zipf_index() as u32;
- 
-        let mut hasher = FxHasher::default();
-        hasher.write_u32(index);
-        let srcip = hasher.finish() as u32;
-        hasher.write_u32(srcip);
-        let dstip = hasher.finish() as u32; 
-        hasher.write_u16(index as u16);
-        let srcport = hasher.finish() as u16;
-        hasher.write_u16(srcport);
-        let dstport = hasher.finish() as u16;
-
-        (srcip, dstip, srcport, dstport)
-    }
-    #[inline]
-    fn get_ipv4addr_from_u32(ip: u32) -> Ipv4Addr {
-        Ipv4Addr::new(((ip >> 24) & 0xFF) as u8, ((ip >> 16) & 0xFF) as u8, ((ip >> 8) & 0xFF) as u8, (ip & 0xFF) as u8)
-    }
-
-    #[inline]
-    fn get_rand_str(slice: &mut [u8]) {
-        let payload_len = slice.len();
-        let mut start = 0;
-        for i in 0..(payload_len/64 + 1) {
-            let r = RAND_GEN.write().unwrap().rand();        
-            slice[start..std::cmp::min(start + 8, payload_len)].copy_from_slice(&r.to_be_bytes());
-            start += 8;
-        }
-    }
 
     // Synthetic packet generator
     #[inline]
