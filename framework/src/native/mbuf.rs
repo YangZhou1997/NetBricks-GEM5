@@ -173,7 +173,7 @@ impl pktgen {
         // (&mut self.pkts[zipf_r].raw[0] as *mut u8, self.pkts[zipf_r].len)
         let cur = self.cur_index;
         self.cur_index += 1;
-        self.cur_index %= PKT_LEN as usize;
+        self.cur_index %= PKT_NUM as usize;
         (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
     }
 }
