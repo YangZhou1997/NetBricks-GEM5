@@ -249,8 +249,6 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
     FLOW_CACHE2.with(|flow_cache2| {
 		let flow_cache2_lived = flow_cache2.borrow();
 		if let Some(s) = flow_cache2_lived.get(&flow) {
-            // dump_hashmap(&flow_cache2_lived);
-            // std::process::exit(0);
 			*s
 		}else {
             // println!("not in cache!");
@@ -291,5 +289,9 @@ fn main() -> Result<()> {
 
     let mut context = initialize_system()?;
     context.run(Arc::new(install), pkt_num, "acl-fw"); // will trap in the run() and return after finish
+    // FLOW_CACHE2.with(|flow_cache2| {
+	// 	let flow_cache2_lived = flow_cache2.borrow();
+    //     dump_hashmap(&flow_cache2_lived);
+    // });
     Ok(())
 }

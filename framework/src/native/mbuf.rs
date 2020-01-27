@@ -168,14 +168,14 @@ impl pktgen {
         }
     }
     pub fn next(&mut self) -> (*mut u8, u16) {
-        let cur = self.cur_index;
-        if cur >= PKT_NUM as usize {
+        // let cur = self.cur_index;
+        // if cur >= PKT_NUM as usize {
             let r = self.rand.rand();
             let zipf_r = self.zipf.next(r) - 1;
             return (&mut self.pkts[zipf_r].raw[0] as *mut u8, self.pkts[zipf_r].len);
-        }
-        self.cur_index += 1;
-        (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
+        // }
+        // self.cur_index += 1;
+        // (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
     }
 }
 lazy_static! {
