@@ -24,6 +24,11 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::fmt::Display;
 use std::collections::HashMap;
+use netbricks::packets::ip::{ProtocolNumber, ProtocolNumbers};
+use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::io::stdout;
 
 type FnvHash = BuildHasherDefault<FnvHasher>;
 
@@ -36,7 +41,8 @@ thread_local! {
 
 thread_local! {
     pub static FLOW_CACHE2: RefCell<HashMap<Flow, bool, FnvHash>> = {
-        let m = HashMap::with_capacity_and_hasher(200000, Default::default()); // the number of entries it from OVS paper
+        let mut m = HashMap::with_capacity_and_hasher(200000, Default::default()); // the number of entries it from OVS paper
+        recover_hashmap(&mut m);
         RefCell::new(m)
     };
 }
@@ -161,6 +167,81 @@ fn my_find<'a>(acls: &'a Vec<Acl>, flow: &Flow) -> Option<&'a Acl>{
     None
 }
 
+fn as_u16_le(array: &[u8]) -> u16 {
+    ((array[0] as u16) <<  0) +
+    ((array[1] as u16) <<  8)
+}
+
+fn to_u8_le(port: u16) -> [u8; 2] {
+    let mut buf = [0u8; 2];
+    buf[0] = (port & 0xFF) as u8;
+    buf[1] = ((port >> 8) & 0xFF) as u8;
+    buf
+}
+
+fn dump_hashmap(map: &HashMap<Flow, bool, FnvHash>) {
+    let mut file = match File::create("/users/yangzhou/acl-fw-hashmap.raw") {
+        Ok(file) => file,
+        Err(why) => panic!("couldn't open {}", why),
+    };
+    let mut buf = [0u8; 14];
+    for (key, value) in &*map {
+        let srcip: [u8; 4] = match key.src_ip() {
+            IpAddr::V4(ip) => ip.octets(),
+            _ => [0, 0, 0, 0],
+        };
+        let dstip: [u8; 4] = match key.dst_ip() {
+            IpAddr::V4(ip) => ip.octets(),
+            _ => [0, 0, 0, 0],
+        };
+        let srcport: u16 = key.src_port();
+        let dstport: u16 = key.dst_port();
+
+        let proto: u8 = key.protocol().0;
+        let val: u8 = match value {
+            true => 1 as u8,
+            false => 0 as u8,
+        };
+        // println!("{} / {}", key, value);
+        buf[0..4].copy_from_slice(&srcip);
+        buf[4..8].copy_from_slice(&dstip);
+        buf[8..10].copy_from_slice(&to_u8_le(srcport));
+        buf[10..12].copy_from_slice(&to_u8_le(dstport));
+        buf[12] = proto;
+        buf[13] = val;
+        file.write(&buf).unwrap();
+    }
+}
+
+fn recover_hashmap(map: &mut HashMap<Flow, bool, FnvHash>) {
+    let mut file = match File::open("/users/yangzhou/acl-fw-hashmap.raw") {
+        Ok(file) => file,
+        Err(why) => panic!("couldn't open {}", why),
+    };
+    let mut buf = [0u8; 14];
+    while let Ok(n) = file.read(&mut buf) {
+        if n == 0 {
+            break;
+        }
+        let srcip = IpAddr::V4(Ipv4Addr::new(buf[0], buf[1], buf[2], buf[3]));
+        let dstip = IpAddr::V4(Ipv4Addr::new(buf[4], buf[5], buf[6], buf[7]));
+        let srcport = as_u16_le(&buf[8..10]);
+        let dstport = as_u16_le(&buf[10..12]);
+        let proto = ProtocolNumber(buf[12]);
+        let flow = Flow::new(srcip, dstip, srcport, dstport, proto);
+        let val: bool = match buf[13] {
+            1u8 => true,
+            0u8 => false,
+            _ => {
+                println!("error"); 
+                false
+            },
+        };
+        map.insert(flow, val);
+    }
+    println!("recover down");
+}
+
 fn acl_match(p: &Tcp<Ipv4>) -> bool {
     let flow = p.flow();
 	// println!("{}", flow);
@@ -168,6 +249,8 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
     FLOW_CACHE2.with(|flow_cache2| {
 		let flow_cache2_lived = flow_cache2.borrow();
 		if let Some(s) = flow_cache2_lived.get(&flow) {
+            // dump_hashmap(&flow_cache2_lived);
+            // std::process::exit(0);
 			*s
 		}else {
             // println!("not in cache!");
