@@ -168,19 +168,19 @@ impl pktgen {
         }
     }
     pub fn next(&mut self) -> (*mut u8, u16) {
-        // let r = self.rand.rand();
-        // let zipf_r = self.zipf.next(r) - 1;
-        // (&mut self.pkts[zipf_r].raw[0] as *mut u8, self.pkts[zipf_r].len)
-        let cur = self.cur_index;
-        self.cur_index += 1;
-        self.cur_index %= PKT_NUM as usize;
-        (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
+        let r = self.rand.rand();
+        let zipf_r = self.zipf.next(r) - 1;
+        (&mut self.pkts[zipf_r].raw[0] as *mut u8, self.pkts[zipf_r].len)
+        // let cur = self.cur_index;
+        // self.cur_index += 1;
+        // self.cur_index %= PKT_NUM as usize;
+        // (&mut self.pkts[cur].raw[0] as *mut u8, self.pkts[cur].len)
     }
 }
 lazy_static! {
     static ref PKTGEN: Arc<RwLock<pktgen>> = {
-        // Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010_1Mflow.dat")))
-        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010.dat")))
+        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010_1Mflow.dat")))
+        // Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010.dat")))
     };
 }
 

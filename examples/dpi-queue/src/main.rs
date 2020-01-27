@@ -154,7 +154,7 @@ fn main() -> Result<()> {
                 _ => unreachable!(),
             }
             
-            if total_packets % (1024 * 1024 / 16) == 0 {
+            if total_packets % (1024 * 1024 / 64) == 0 {
                 println!("dpi packets processed: {}", total_packets);
             }
 
