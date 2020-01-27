@@ -170,6 +170,7 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
 		if let Some(s) = flow_cache2_lived.get(&flow) {
 			*s
 		}else {
+            // println!("not in cache!");
 			drop(flow_cache2_lived);
 
 			let mut flag = false;
@@ -177,9 +178,7 @@ fn acl_match(p: &Tcp<Ipv4>) -> bool {
 		        if let Some(acl) = acls.borrow().iter().find(|ref acl| acl.matches(&flow)) {
 		            if !acl.drop {
 		                FLOW_CACHE.with(|flow_cache| {
-        					if flow_cache.borrow().len() < 200000 {
-		                        (*flow_cache.borrow_mut()).insert(flow);
-        					}
+	                        (*flow_cache.borrow_mut()).insert(flow);
 		                });
 		            }
 		            flag = true; // retain
