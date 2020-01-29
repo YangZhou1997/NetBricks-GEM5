@@ -72,26 +72,26 @@ pub fn dpi(packet: RawPacket) -> Result<Tcp<Ipv4>> {
     // stdout().flush().unwrap();
 
     let mut matches = vec![];
-    // let mut matches_cnt = 0;
+    let mut matches_cnt = 0;
     AC.with(|ac| {
-        // let start = Instant::now();
+        let start = Instant::now();
         for mat in ac.borrow().find_iter(payload) {
-            // matches_cnt += 1;
+            matches_cnt += 1;
             matches.push((mat.pattern(), mat.start(), mat.end()));
         }
-        // let duration: u128 = start.elapsed().as_micros();
+        let duration: u128 = start.elapsed().as_micros();
 
-        // let mut accu_duration = ACCU_DURATION.write().unwrap();
-        // let mut cnt = CNT.write().unwrap();
+        let mut accu_duration = ACCU_DURATION.write().unwrap();
+        let mut cnt = CNT.write().unwrap();
 
-        // *accu_duration += duration;
-        // *cnt += 1;
+        *accu_duration += duration;
+        *cnt += 1;
     });
-    // let cnt = CNT.read().unwrap();
-    // let accu_duration = ACCU_DURATION.read().unwrap();
-    // if *cnt % (1024 * 1024) == 0 {
-    //     println!("average processing time per packet = {:?} us", (*accu_duration as f64) / (*cnt as f64));
-    // }
+    let cnt = CNT.read().unwrap();
+    let accu_duration = ACCU_DURATION.read().unwrap();
+    if *cnt % (1024 * 1024) == 0 {
+        println!("average processing time per packet = {:?} us", (*accu_duration as f64) / (*cnt as f64));
+    }
 
     // println!("{:?}", matches);
     // stdout().flush().unwrap();

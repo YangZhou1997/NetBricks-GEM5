@@ -17,6 +17,11 @@ echo "Current Cargo Incremental Setting: ${CARGO_INCREMENTAL}"
 echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 echo $TARGET
 
+# export CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER=arm-linux-gnueabi-gcc
+# export CC_arm_unknown_linux_musleabi=arm-linux-gnueabi-gcc
+
+# cargo build --target arm-unknown-linux-musleabi --release
+
 if [ "$MODE" == "debug" ]; then
 	# cargo +stage1 build
 	# cargo build --target=$TARGET
