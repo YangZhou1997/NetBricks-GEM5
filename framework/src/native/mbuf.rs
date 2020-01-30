@@ -180,7 +180,7 @@ impl pktgen {
 }
 lazy_static! {
     static ref PKTGEN: Arc<RwLock<pktgen>> = {
-        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010_1Mflow.dat")))
+        Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010_100kflow.dat")))
         // Arc::new(RwLock::new(pktgen::new("/users/yangzhou/ictf2010.dat")))
     };
 }

@@ -17,20 +17,20 @@ echo "Current Cargo Incremental Setting: ${CARGO_INCREMENTAL}"
 echo "Current Rust Backtrace Setting: ${RUST_BACKTRACE}"
 echo $TARGET
 
-# export CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER=arm-linux-gnueabi-gcc
-# export CC_arm_unknown_linux_musleabi=arm-linux-gnueabi-gcc
+export CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER=arm-linux-gnueabi-gcc
+export CC_arm_unknown_linux_musleabi=arm-linux-gnueabi-gcc
 
-# cargo build --target arm-unknown-linux-musleabi --release
+cargo build --target arm-unknown-linux-musleabi --release
 
-if [ "$MODE" == "debug" ]; then
-	# cargo +stage1 build
-	# cargo build --target=$TARGET
-	cross build --target=$TARGET
-else
-	# cargo +stage1 build --release
-	# cargo build --target=$TARGET --release
-	cross build --target=$TARGET --release
-fi
+# if [ "$MODE" == "debug" ]; then
+# 	# cargo +stage1 build
+# 	# cargo build --target=$TARGET
+# 	cross build --target=$TARGET
+# else
+# 	# cargo +stage1 build --release
+# 	# cargo build --target=$TARGET --release
+# 	cross build --target=$TARGET --release
+# fi
 
 # directly building all NFs using customized rustc without stack overflow check. 
 # for TASK in acl-fw dpi lpm macswap maglev monitoring nat-tcp-v4 acl-fw-ipsec dpi-ipsec lpm-ipsec macswap-ipsec maglev-ipsec monitoring-ipsec nat-tcp-v4-ipsec dumptrace
